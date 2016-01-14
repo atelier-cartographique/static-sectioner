@@ -40,10 +40,11 @@ class Builder:
     def __init__ (self, indir, outdir, asset_compiler):
         self.home = Path(indir)
         self.out = Path(outdir)
+        self.sectioner = self.home.joinpath('sectioner')
         self.compiler = asset_compiler
 
-        self.page_template = load_template(indir, 'page')
-        self.media_template = load_template(indir, 'media')
+        self.page_template = load_template(self.sectioner.as_posix(), 'page')
+        self.media_template = load_template(self.sectioner.as_posix(), 'media')
 
     def build_media (self, mediadir):
         template = self.media_template

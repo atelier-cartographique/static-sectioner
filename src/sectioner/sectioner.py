@@ -16,6 +16,12 @@ def import_command(debug):
         click.echo('Debug mode is %s' % ('on' if debug else 'off'))
 
 
+@import_command.command()
+@click.argument('name')
+def project_new(name):
+    from project import Project
+    p = Project(name)
+    p.build()
 
 @import_command.command()
 @click.argument('indir')

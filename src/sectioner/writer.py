@@ -15,7 +15,7 @@ class Writer:
 
     def __init__ (self, indir, outdir):
         self.out = Path(outdir)
-        self.template = load_template(indir, 'master')
+        self.template = load_template(indir + '/sectioner', 'master')
 
 
     def write (self, fp, data):
