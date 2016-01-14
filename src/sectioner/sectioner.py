@@ -19,7 +19,7 @@ def import_command(debug):
 @import_command.command()
 @click.argument('name')
 def project_new(name):
-    from project import Project
+    from .project import Project
     p = Project(name)
     p.build()
 
@@ -27,9 +27,9 @@ def project_new(name):
 @click.argument('indir')
 @click.argument('outdir')
 def build(indir, outdir):
-    from info import Builder
-    from writer import Writer
-    from asset import Compiler
+    from .info import Builder
+    from .writer import Writer
+    from .asset import Compiler
     c = Compiler(indir, outdir)
     b = Builder(indir, outdir, c)
     w = Writer(indir, outdir)

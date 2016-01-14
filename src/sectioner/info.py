@@ -4,7 +4,7 @@ from pathlib import Path
 import xml.dom.minidom as minidom
 import click
 
-from template import (load_template, apply_template)
+from .template import (load_template, apply_template)
 
 
 def get_content (node):

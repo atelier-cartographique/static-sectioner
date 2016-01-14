@@ -3,7 +3,7 @@ import xml.dom.minidom as minidom
 import click
 import json
 from slugify import slugify
-from template import (load_template, apply_template)
+from .template import (load_template, apply_template)
 
 def serialize (data, key):
     out = []
@@ -43,4 +43,7 @@ class Writer:
         name = 'page_{}'.format(index)
         if 'title' in page['data']:
             name = slugify(page['data']['title'])
+        if 0 == index:
+            name = 'index'
+
         self.write('{}.html'.format(name), rendered)
