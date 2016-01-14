@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            #viewport {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                overflow: hidden;
+            }
+            .page {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                left: 0;
+            }
+        </style>
+    </head>
+    <body>
+    <div id="viewport">
+        <div class="page" data-index="$index">
+            $page
+        </div>
+    </div>
+    <script>
+    window.Sectioner = {
+        data: $collection
+    };
+
+    </script>
+    <script src="./zepto.js"></script>
+    <script src="./velocity.js"></script>
+    <script src="./sectioner.js"></script>
+    </body>
+</html>
