@@ -329,12 +329,14 @@ function Page (data, index, direction) {
     node.innerHTML = html;
     
     Object.defineProperty(this, 'node', {value: node});
+    Object.defineProperty(this, 'index', {value: index});
     Object.defineProperty(this, 'direction', {value: direction || DIRECTION.VERTICAL});
     
     this.offset = 0;
 }
 
 Page.prototype.remove = function () {
+    console.log('page remove', this.index);
     return removeElement(this.node);
 };
 
@@ -384,8 +386,9 @@ Page.prototype.setOffset = function (offset, animOptions) {
             animation.translateX = [offset, previousOffset];
         }
         
-        Velocity(this.node, 'stop');
+//        Velocity(this.node, 'stop');
         Velocity(this.node, animation, options);
+        console.log('page animation', this.index, 'from', previousOffset, 'to', offset);
     }
     else {
         var trProp = (DIRECTION.VERTICAL === this.direction)? 'translateY': 'translateX',
@@ -591,15 +594,15 @@ Pager.prototype.setHandlers = function () {
     }, this);
     this.on('stop:animation', function(){
         this.isAnimating = false;
-//        if (this.pendings.length > 0) {
-//            var pending = this.pendings.shift();
-//            if ('next' === pending) {
-//                this.pageNext();
-//            }
-//            else {
-//                this.pagePrevious();
-//            }
-//        }
+        if (this.pendings.length > 0) {
+            var pending = this.pendings.shift();
+            if ('next' === pending) {
+                this.pageNext();
+            }
+            else {
+                this.pagePrevious();
+            }
+        }
     }, this);
     
 };
@@ -649,6 +652,10 @@ Pager.prototype.touchmove = function (event) {
 Pager.prototype.wheel = function (event) {
     if (!this.isStarted) {
         this.start([0,0]);
+        var that = this;
+        setTimeout(function(){
+            that.stop();
+        }, 200);
     }
     this.wheelDeltas.push(event.deltaY);
     var delta = this.wheelDeltas.reduce(function(a,b){return a + b;}),
@@ -666,7 +673,7 @@ Pager.prototype.wheel = function (event) {
     else {
         offset = delta;
     }
-    this.checkOffset(offset);
+    this.checkOffset(offset * 4);
 };
 
 Pager.prototype.checkOffset = function (offset, threshold) {
@@ -687,6 +694,7 @@ Pager.prototype.checkOffset = function (offset, threshold) {
 };
 
 Pager.prototype.pageHint = function (offset) {
+    return;
     var hintOffset = Math.abs(Math.floor(offset / 6)),
         rect = this.node.getBoundingClientRect(),
         height = rect.height,
@@ -721,7 +729,8 @@ Pager.prototype.pagePrevious = function () {
         return;
     }
     if (this.isAnimating) {
-        this.once('stop:animation', this.pagePrevious, this);
+//        this.once('stop:animation', this.pagePrevious, this);
+        this.pendings.push('previous');
         return;
     }
     console.log('previous', this.index);
@@ -769,7 +778,11 @@ Pager.prototype.pageNext = function () {
         return;
     }
     if (this.isAnimating) {
-        this.once('stop:animation', this.pageNext, this);
+//        this.once('stop:animation', function(){
+//            console.log('delayed next', this);
+//            this.pageNext();
+//        }, this);
+        this.pendings.push('next');
         return;
     }
     console.log('next', this.index, this.pages.length);
