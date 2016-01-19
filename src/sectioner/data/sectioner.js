@@ -240,6 +240,46 @@ var DIRECTION = {
 Object.freeze(DIRECTION);
 
 
+function mkEmiter (obj, node) {
+    var prefix = Date.now() + '#';
+    
+    function emit (name) {
+        console.log('emit', prefix, name);
+        var event = new Event(prefix + name);
+        node.dispatchEvent(event);
+    }
+    
+    function on (event, fn, ctx) {
+        console.log('on', prefix, event);
+        node.addEventListener(prefix + event, function () {
+            fn.apply(ctx, arguments);
+        }, false);
+    }
+    
+    function once (event, fn, ctx) {
+        console.log('once', prefix, event);
+        var fired = false;
+
+        function g() {
+            node.removeEventListener(prefix + event, g, false);
+            if (!fired) {
+              fired = true;
+              fn.apply(ctx, arguments);
+            }
+        }
+
+        node.addEventListener(prefix + event, g, false);
+    }
+    
+    Object.defineProperties(obj, {
+        emit: {value: emit},
+        on : {value: on},
+        once: {value: once}
+    });
+}
+
+
+
 function emptyElement (elem) {
     while (elem.firstChild) {
         removeElement(elem.firstChild);
@@ -333,6 +373,9 @@ function Page (data, index, direction) {
     Object.defineProperty(this, 'direction', {value: direction || DIRECTION.VERTICAL});
     
     this.offset = 0;
+    this.callbacks = [];
+    
+    mkEmiter(this, this.node);
 }
 
 Page.prototype.remove = function () {
@@ -355,24 +398,57 @@ Page.prototype.recorder = function (fn) {
     return g;
 };
 
+Page.prototype.completer = function (fn) {
+    var that = this;
+    function g () {
+        if (fn) {
+            fn();
+        }
+        this.isAnimating = false;
+        that.emit('stop:animation');
+    };
+    return g;
+};
+
+Page.prototype.after = function (fn, ctx) {
+    
+    if (this.isAnimating) {
+        this.once('stop:animation', fn, ctx);
+    }
+    else {
+        setTimeout(function(){
+            fn.call(ctx);
+        }, 1);
+    }
+};
+
 Page.prototype.setOffset = function (offset, animOptions) {
     if (offset === this.offset) {
         return;
     }
-    var previousOffset = this.offset;
+    var previousOffset = this.offset,
+        node = this.node;
+    
     this.recordOffset(offset);
     if (animOptions) {
+        this.isAnimating = true;
+        this.emit('start:animation');
+        
         var animation = {
             tween: [offset, previousOffset]
         };
         var options = {
             progress: this.recorder(),
+            complete: this.completer(),
             duration: 600
         };
         
         for (var k in animOptions) {
             if ('progress' === k) {
                 options.progress = this.recorder(animOptions.progress);
+            }
+            else if ('complete' === k) {
+                options.complete = this.completer(animOptions.complete);
             }
             else {
                 options[k] = animOptions[k];
@@ -386,8 +462,9 @@ Page.prototype.setOffset = function (offset, animOptions) {
             animation.translateX = [offset, previousOffset];
         }
         
-//        Velocity(this.node, 'stop');
-        Velocity(this.node, animation, options);
+        Velocity(node, 'finish');
+        Velocity(node, animation, options);
+        
         console.log('page animation', this.index, 'from', previousOffset, 'to', offset);
     }
     else {
@@ -531,32 +608,6 @@ Pager.prototype.prepareNextPage = function () {
     this.nextPage = page;
 };
 
-Pager.prototype.emit = function (name) {
-    var event = new Event(name);
-    this.node.dispatchEvent(event);
-};
-
-Pager.prototype.on = function (event, fn, ctx) {
-    this.node.addEventListener(event, function () {
-        fn.apply(ctx, arguments);
-    }, false);
-};
-
-
-Pager.prototype.once = function (event, fn, ctx) {
-    var node = this.node,
-        fired = false;
-    
-    function g() {
-        node.removeEventListener(event, g, false);
-        if (!fired) {
-          fired = true;
-          fn.apply(ctx, arguments);
-        }
-    }
-    
-    node.addEventListener(event, g, false);
-};
 
 Pager.prototype.bindCallback = function (method, prevent) {
     var ctx = this,
@@ -578,6 +629,7 @@ Pager.prototype.bindCallback = function (method, prevent) {
  * 
  */
 Pager.prototype.setHandlers = function () {
+    mkEmiter(this, this.node);
     this.bindCallback('touchstart', true);
     this.bindCallback('touchend', true);
     this.bindCallback('touchcancel', true);
@@ -589,9 +641,8 @@ Pager.prototype.setHandlers = function () {
     
     
     this.pendings = [];
-    this.on('start:animation', function(){
-        this.isAnimating = true;
-    }, this);
+
+    
     this.on('stop:animation', function(){
         this.isAnimating = false;
         if (this.pendings.length > 0) {
@@ -673,13 +724,23 @@ Pager.prototype.wheel = function (event) {
     else {
         offset = delta;
     }
-    this.checkOffset(offset * 4);
+    if (!this.checkOffset(offset * 4)) {
+        if (!this.hintLock) {
+            this.pageHint(offset);
+        }
+    }
+    else {
+        this.hintLock = true;
+        var that = this;
+        setTimeout(function(){
+            that.hintLock = false;
+        }, 1200);
+    }
 };
 
 Pager.prototype.checkOffset = function (offset, threshold) {
     var threshold = threshold || this.threshold,
         absOffset = Math.abs(offset);
-//    console.log('checkOffset', offset, threshold);
     if (absOffset >= threshold) {
         if (offset < 0) {
             this.pagePrevious();
@@ -687,28 +748,41 @@ Pager.prototype.checkOffset = function (offset, threshold) {
         else {
             this.pageNext();
         }
+        return true;
     }
-    else {
-        this.pageHint(offset);
-    }
+    return false;
 };
 
 Pager.prototype.pageHint = function (offset) {
-    return;
-    var hintOffset = Math.abs(Math.floor(offset / 6)),
+    if (this.isHinting) {
+        return;
+    }
+    var that = this,
+        hintOffset = Math.floor(offset * -1),
         rect = this.node.getBoundingClientRect(),
-        height = rect.height,
-        newOffset = height - hintOffset,
-        options = {duration: 100},
-        page = (offset < 0)? this.previousPage: this.nextPage,
-        start, translate, anim;
-    
-    if (newOffset < 10) {
-        newOffset = 0;
+        page = (offset < 0)? this.previousPage: this.nextPage;
+
+    function complete () {
+        console.log('hint middle', page.index);
+        if (!that.isAnimating) {
+            page.translate(-hintOffset, {
+                duration: 500,
+                complete: function(){
+                    console.log('hint stop', page.index);
+                    that.isHinting = false;
+                }
+            });
+        }
+        else {
+            console.log('hint stop (no anim)', page.index);
+            that.isHinting = false;
+        }
     }
     
     if (page) {
-        page.setOffset(newOffset, {duration: 300});
+        this.isHinting = true;
+        console.log('hint start', page.index);
+        page.translate(hintOffset, {duration: 300, complete:complete});
     }
 };
 
@@ -734,6 +808,7 @@ Pager.prototype.pagePrevious = function () {
         return;
     }
     console.log('previous', this.index);
+    this.isAnimating = true;
     var that = this,
         oldIndex = this.index,
         rect = this.node.getBoundingClientRect(),
@@ -743,10 +818,6 @@ Pager.prototype.pagePrevious = function () {
     this.index = this.index - 1;
     
     
-    function animationStart () {
-        that.emit('start:animation');
-    }
-    
     function animationEnd () {
         if (that.nextPage) {
             that.nextPage.remove();
@@ -754,12 +825,12 @@ Pager.prototype.pagePrevious = function () {
         that.previousPage = null;
         that.currentPage = previousPage;
         that.nextPage = currentPage;
+        that.currentPage.setStyle('zIndex', ZINDEX.BACK);
         that.preparePreviousPage();
         that.emit('stop:animation');
     }
     
     var currentOptions = {
-        begin: animationStart,
         duration: 1000
     };
     
@@ -768,8 +839,12 @@ Pager.prototype.pagePrevious = function () {
         duration: 1000
     };
     
-    currentPage.setOffset(offset, currentOptions);
-    previousPage.setOffset(0, previousOptions);
+    previousPage.after(function(){
+        previousPage.once('start:animation', function(){
+            currentPage.setOffset(offset, currentOptions);
+        });
+        previousPage.setOffset(0, previousOptions);
+    });
 };
 
 Pager.prototype.pageNext = function () {
@@ -786,6 +861,8 @@ Pager.prototype.pageNext = function () {
         return;
     }
     console.log('next', this.index, this.pages.length);
+    this.isAnimating = true;
+    
     var that = this,
         oldIndex = this.index,
         rect = this.node.getBoundingClientRect(),
@@ -794,11 +871,6 @@ Pager.prototype.pageNext = function () {
         currentPage = this.currentPage;
     this.index = this.index + 1;
     
-    
-    function animationStart () {
-        that.emit('start:animation');
-    }
-    
     function animationEnd () {
         if (that.previousPage) {
             that.previousPage.remove();
@@ -806,13 +878,13 @@ Pager.prototype.pageNext = function () {
         that.previousPage = currentPage;
         that.currentPage = nextPage;
         that.nextPage = null;
+        that.currentPage.setStyle('zIndex', ZINDEX.BACK);
         that.prepareNextPage();
         that.emit('stop:animation');
     }
     
     
     var currentOptions = {
-        begin: animationStart,
         duration: 1000
     };
     
@@ -821,8 +893,12 @@ Pager.prototype.pageNext = function () {
         duration: 1000
     };
     
-    currentPage.setOffset(-offset, currentOptions);
-    nextPage.setOffset(0, nextOptions);
+    nextPage.after(function(){
+        nextPage.once('start:animation', function(){
+            currentPage.setOffset(-offset, currentOptions);
+        });
+        nextPage.setOffset(0, nextOptions);
+    });
 };
 
 
