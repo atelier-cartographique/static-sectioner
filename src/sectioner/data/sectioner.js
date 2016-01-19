@@ -401,11 +401,16 @@ Page.prototype.recorder = function (fn) {
 Page.prototype.completer = function (fn) {
     var that = this;
     function g () {
-        if (fn) {
-            fn();
-        }
-        this.isAnimating = false;
+        that.isAnimating = false;
         that.emit('stop:animation');
+        if (fn) {
+            try {
+                fn();
+            }
+            catch(e) {
+                console.error('Page.completer', e);
+            }
+        }
     };
     return g;
 };
@@ -706,7 +711,7 @@ Pager.prototype.wheel = function (event) {
         var that = this;
         setTimeout(function(){
             that.stop();
-        }, 200);
+        }, 100);
     }
     this.wheelDeltas.push(event.deltaY);
     var delta = this.wheelDeltas.reduce(function(a,b){return a + b;}),
@@ -726,7 +731,7 @@ Pager.prototype.wheel = function (event) {
     }
     if (!this.checkOffset(offset * 4)) {
         if (!this.hintLock) {
-            this.pageHint(offset);
+            this.pageHint(offset * 2);
         }
     }
     else {
@@ -803,7 +808,6 @@ Pager.prototype.pagePrevious = function () {
         return;
     }
     if (this.isAnimating) {
-//        this.once('stop:animation', this.pagePrevious, this);
         this.pendings.push('previous');
         return;
     }
