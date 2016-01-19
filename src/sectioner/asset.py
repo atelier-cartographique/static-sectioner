@@ -44,12 +44,7 @@ class Compiler:
     def __init__ (self, indir, outdir):
         self.home = Path(indir)
         self.out = Path(outdir)
-
-        self.processors = dict()
         self.assets = []
-
-    def register_processor (self, name, method):
-        self.processors[name] = method
 
     def add (self, source, target, processor=None):
         asset = Asset(

@@ -58,7 +58,7 @@
                         originalEvent.returnValue = false;
                 }
             };
-
+            
             // calculate deltaY (and deltaX) according to the event
             if ( support == "mousewheel" ) {
                 event.deltaY = - 1/40 * originalEvent.wheelDelta;
@@ -116,7 +116,7 @@ if (!Array.prototype.reduce) {
       value = arguments[1];
     } else {
       while (k < len && !(k in t)) {
-        k++;
+        k++; 
       }
       if (k >= len) {
         throw new TypeError('Reduce of empty array with no initial value');
@@ -195,7 +195,7 @@ var KEY = {
 Object.freeze(KEY);
 
 function isKeyCode (event, kc) {
-    var result = false;
+    var result = false; 
     if (Array.isArray(kc)) {
         for (var i = 0; i < kc.length; i++) {
             var k = kc[i];
@@ -318,6 +318,101 @@ function getTouchEventPos (ev, id) {
 
 
 
+function Page (data, index, direction) {
+    if ((index < 0) || (index > (data.length - 1))) {
+        throw (new Error('PageIndexOutOfRange'));
+    }
+    var html = data[index],
+        node = document.createElement('div');
+    node.setAttribute('class', 'page');
+    node.setAttribute('data-index', index);
+    node.innerHTML = html;
+    
+    Object.defineProperty(this, 'node', {value: node});
+    Object.defineProperty(this, 'direction', {value: direction || DIRECTION.VERTICAL});
+    
+    this.offset = 0;
+}
+
+Page.prototype.remove = function () {
+    return removeElement(this.node);
+};
+
+Page.prototype.recordOffset = function (offset) {
+    this.offset = offset;
+};
+
+Page.prototype.recorder = function (fn) {
+    var that = this;
+    function g (elem, c, r, s, t) {
+        that.offset = t;
+        if (fn) {
+            fn(elem, c, r, s, t);
+        }
+    };
+    return g;
+};
+
+Page.prototype.setOffset = function (offset, animOptions) {
+    if (offset === this.offset) {
+        return;
+    }
+    var previousOffset = this.offset;
+    this.recordOffset(offset);
+    if (animOptions) {
+        var animation = {
+            tween: [offset, previousOffset]
+        };
+        var options = {
+            progress: this.recorder(),
+            duration: 600
+        };
+        
+        for (var k in animOptions) {
+            if ('progress' === k) {
+                options.progress = this.recorder(animOptions.progress);
+            }
+            else {
+                options[k] = animOptions[k];
+            }
+        }
+        
+        if (DIRECTION.VERTICAL) {
+            animation.translateY = [offset, previousOffset];
+        }
+        else {
+            animation.translateX = [offset, previousOffset];
+        }
+        
+        Velocity(this.node, 'stop');
+        Velocity(this.node, animation, options);
+    }
+    else {
+        var trProp = (DIRECTION.VERTICAL === this.direction)? 'translateY': 'translateX',
+            trString = trProp + '(' + offset.toString() + 'px)' ;
+        this.node.style.transform =  trString;
+    }
+};
+
+Page.prototype.translate = function (offset, animOptions) {
+    this.setOffset(this.offset + offset, animOptions);
+};
+
+
+Page.prototype.setStyle = function (key, value) {
+    var styles = {};
+    if (value) {
+        styles[key] = value;
+    }
+    else {
+        styles = key;
+    }
+    for (var k in styles) {
+        this.node[k] = styles[k];
+    }
+};
+
+
 /**
  * Constructor of a Pager
  * @param   {DOMElement} elem      An element to attach the Pager to
@@ -331,7 +426,7 @@ function Pager (elem, pages, direction, index) {
     Object.defineProperty(this, 'node', {value: elem});
     Object.defineProperty(this, 'pages', {value: pages});
     Object.defineProperty(this, 'direction', {value: direction});
-
+    
     Object.defineProperty(this, 'startPos', {
         set: function (val) {
             if (Array.isArray(val)) {
@@ -345,26 +440,32 @@ function Pager (elem, pages, direction, index) {
             return startPos[direction];
         }
     });
-
+    
     Object.defineProperty(this, 'threshold', {
         get: function () {
             var rect = elem.getBoundingClientRect(),
                 tr;
             if (DIRECTION.HORIZONTAL === direction) {
-                tr = Math.floor(rect.width / 3);
+                tr = Math.floor(rect.width * 0.8);
             }
             else {
-                tr = Math.floor(rect.height / 3);
+                tr = Math.floor(rect.height * 0.8);
             }
             return tr;
         }
     })
-
+    
     this.index = index || 0;
     this.previousPage = null;
-    this.currentPage = elem.firstElementChild;
+    this.currentPage = null;
     this.nextPage = null;
-
+    
+    emptyElement(elem);
+    this.currentPage = this.createPage(this.index);
+    this.currentPage.setOffset(0);
+    this.currentPage.setStyle('zIndex', ZINDEX.BACK);
+    this.node.appendChild(this.currentPage.node);
+    
     this.preparePreviousPage();
     this.prepareNextPage();
     this.setHandlers();
@@ -388,28 +489,24 @@ Pager.prototype.createPage = function (index) {
     if ((index < 0) || (index > (this.pages.length - 1))) {
         return null;
     }
-    var html = this.pages[index],
-        page = document.createElement('div');
-    page.setAttribute('class', 'page');
-    page.setAttribute('data-index', index);
-    page.innerHTML = html;
-    return page;
+    return (new Page(this.pages, index, this.direction));
 }
 
 Pager.prototype.preparePreviousPage = function () {
     var index = this.index - 1;
     if (this.previousPage) {
-        removeElement(this.previousPage);
+        this.previousPage.remove();
         this.previousPage = null;
     }
     if (index < 0) {
         return;
     }
-
+    
     var page = this.createPage(index),
         rect = this.node.getBoundingClientRect();
-    page.style.transform = 'translateY(-' + rect.height + 'px)';
-    this.node.appendChild(page);
+    page.setOffset(-rect.height);
+    page.setStyle('zIndex', ZINDEX.FRONT);
+    this.node.appendChild(page.node);
     this.previousPage = page;
 };
 
@@ -422,11 +519,12 @@ Pager.prototype.prepareNextPage = function () {
     if (index > (this.pages.length - 1)) {
         return;
     }
-
+    
     var page = this.createPage(index),
         rect = this.node.getBoundingClientRect();
-    page.style.transform = 'translateY(' + rect.height + 'px)';
-    this.node.appendChild(page);
+    page.setOffset(rect.height);
+    page.setStyle('zIndex', ZINDEX.FRONT);
+    this.node.appendChild(page.node);
     this.nextPage = page;
 };
 
@@ -445,7 +543,7 @@ Pager.prototype.on = function (event, fn, ctx) {
 Pager.prototype.once = function (event, fn, ctx) {
     var node = this.node,
         fired = false;
-
+    
     function g() {
         node.removeEventListener(event, g, false);
         if (!fired) {
@@ -453,14 +551,14 @@ Pager.prototype.once = function (event, fn, ctx) {
           fn.apply(ctx, arguments);
         }
     }
-
+    
     node.addEventListener(event, g, false);
 };
 
 Pager.prototype.bindCallback = function (method, prevent) {
     var ctx = this,
         fn = this[method];
-
+    
     var callback = function () {
         var event = arguments[0];
         if (prevent) {
@@ -469,12 +567,12 @@ Pager.prototype.bindCallback = function (method, prevent) {
         }
         fn.apply(ctx, arguments);
     };
-
+    
     this.node.addEventListener(method, callback, false);
 };
 
 /**
- *
+ * 
  */
 Pager.prototype.setHandlers = function () {
     this.bindCallback('touchstart', true);
@@ -485,25 +583,25 @@ Pager.prototype.setHandlers = function () {
     this.node.setAttribute('tabindex', -1);
     this.node.focus();
     this.bindCallback('keyup', true); // well, difficult to manage focus though
-
-
+    
+    
     this.pendings = [];
     this.on('start:animation', function(){
         this.isAnimating = true;
     }, this);
     this.on('stop:animation', function(){
         this.isAnimating = false;
-        if (this.pendings.length > 0) {
-            var pending = this.pendings.shift();
-            if ('next' === pending) {
-                this.pageNext();
-            }
-            else {
-                this.pagePrevious();
-            }
-        }
+//        if (this.pendings.length > 0) {
+//            var pending = this.pendings.shift();
+//            if ('next' === pending) {
+//                this.pageNext();
+//            }
+//            else {
+//                this.pagePrevious();
+//            }
+//        }
     }, this);
-
+    
 };
 
 
@@ -524,7 +622,7 @@ Pager.prototype.stop = function () {
 Pager.prototype.touchstart = function (event) {
     var touches = event.changedTouches,
         touch = touches[0];
-
+    
     this.currentTouchId = touch.identifier;
     this.start(getTouchEventPos(event, this.currentTouchId));
 };
@@ -574,7 +672,7 @@ Pager.prototype.wheel = function (event) {
 Pager.prototype.checkOffset = function (offset, threshold) {
     var threshold = threshold || this.threshold,
         absOffset = Math.abs(offset);
-    console.log('checkOffset', offset, threshold);
+//    console.log('checkOffset', offset, threshold);
     if (absOffset >= threshold) {
         if (offset < 0) {
             this.pagePrevious();
@@ -583,7 +681,30 @@ Pager.prototype.checkOffset = function (offset, threshold) {
             this.pageNext();
         }
     }
+    else {
+        this.pageHint(offset);
+    }
 };
+
+Pager.prototype.pageHint = function (offset) {
+    var hintOffset = Math.abs(Math.floor(offset / 6)),
+        rect = this.node.getBoundingClientRect(),
+        height = rect.height,
+        newOffset = height - hintOffset,
+        options = {duration: 100},
+        page = (offset < 0)? this.previousPage: this.nextPage,
+        start, translate, anim;
+    
+    if (newOffset < 10) {
+        newOffset = 0;
+    }
+    
+    if (page) {
+        page.setOffset(newOffset, {duration: 300});
+    }
+};
+
+
 
 Pager.prototype.keyup = function (event) {
     if (isKeyCode(event, this.NEXT_KEYS)) {
@@ -611,44 +732,35 @@ Pager.prototype.pagePrevious = function () {
         previousPage = this.previousPage,
         currentPage = this.currentPage;
     this.index = this.index - 1;
-
-
+    
+    
     function animationStart () {
         that.emit('start:animation');
+    }
+    
+    function animationEnd () {
         if (that.nextPage) {
-            removeElement(that.nextPage);
+            that.nextPage.remove();
         }
         that.previousPage = null;
         that.currentPage = previousPage;
         that.nextPage = currentPage;
         that.preparePreviousPage();
-    }
-
-    function animationEnd () {
         that.emit('stop:animation');
     }
-
-    var currentAnim = {
-        translateY: [offset, 0]
-    };
+    
     var currentOptions = {
         begin: animationStart,
-        duration: 2000
+        duration: 1000
     };
-
-    var previousAnim = {
-        translateY: [0, -offset]
-    };
+    
     var previousOptions = {
         complete: animationEnd,
         duration: 1000
     };
-
-    currentPage.style.zIndex = ZINDEX.BACK;
-    previousPage.style.zIndex = ZINDEX.FRONT;
-
-    Velocity(currentPage, currentAnim, currentOptions);
-    Velocity(previousPage, previousAnim, previousOptions);
+    
+    currentPage.setOffset(offset, currentOptions);
+    previousPage.setOffset(0, previousOptions);
 };
 
 Pager.prototype.pageNext = function () {
@@ -668,44 +780,36 @@ Pager.prototype.pageNext = function () {
         nextPage = this.nextPage,
         currentPage = this.currentPage;
     this.index = this.index + 1;
-
-
+    
+    
     function animationStart () {
         that.emit('start:animation');
+    }
+    
+    function animationEnd () {
         if (that.previousPage) {
-            removeElement(that.previousPage);
+            that.previousPage.remove();
         }
         that.previousPage = currentPage;
         that.currentPage = nextPage;
         that.nextPage = null;
         that.prepareNextPage();
-    }
-
-    function animationEnd () {
         that.emit('stop:animation');
     }
-
-    var currentAnim = {
-        translateY: [-offset, 0]
-    };
+    
+    
     var currentOptions = {
         begin: animationStart,
-        duration: 2000
+        duration: 1000
     };
-
-    var nextAnim = {
-        translateY: [0, offset]
-    };
+    
     var nextOptions = {
         complete: animationEnd,
         duration: 1000
     };
-
-    currentPage.style.zIndex = ZINDEX.BACK;
-    nextPage.style.zIndex = ZINDEX.FRONT;
-
-    Velocity(currentPage, currentAnim, currentOptions);
-    Velocity(nextPage, nextAnim, nextOptions);
+    
+    currentPage.setOffset(-offset, currentOptions);
+    nextPage.setOffset(0, nextOptions);
 };
 
 
@@ -719,7 +823,7 @@ document.onreadystatechange = function () {
     if (isNaN(index)) {
         return;
     }
-
+    
     var pager = new Pager(viewport, Sectioner.data, DIRECTION.VERTICAL, index);
     }
 };

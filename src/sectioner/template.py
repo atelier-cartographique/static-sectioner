@@ -9,7 +9,7 @@ def load_template (dirpath, name):
     template_path = home.joinpath(name + '.html')
     with template_path.open() as template_file:
         template = Template(template_file.read())
-        
+
     return template
 
 
