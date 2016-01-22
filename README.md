@@ -1,5 +1,7 @@
 # static-sectioner
-A static part-of-a-site generator 
+Sectioner is meant to be a portfolio generator. 
+It is suitable for static websites, that are updated once a while, with consequent updates. 
+It is not suitable for blog like website, agendas, etc... 
 
 
 ## Requirements
