@@ -20,7 +20,8 @@ classifiers = [
 ]
 install_requires = [
     "click",
-    "python-slugify"
+    "python-slugify",
+    "Pillow"
 ]
 packages = ['sectioner']
 package_dir = {'sectioner': 'sectioner'}
