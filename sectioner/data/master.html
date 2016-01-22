@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <title data-role="page.title" />
         <style>
             #viewport {
                 position: absolute;
@@ -21,17 +23,10 @@
     </head>
     <body>
     <div id="viewport">
-        <div class="page" data-index="$index">
-            $page
-        </div>
+        <div class="page" data-role="page.html" data-index="$page.index" />
     </div>
-    <script>
-    window.Sectioner = {
-        data: $collection
-    };
-
-    </script>
-    <script src="./zepto.js"></script>
+    <script src="./lodash.js"></script>
+    <script src="./data.js"></script>
     <script src="./velocity.js"></script>
     <script src="./sectioner.js"></script>
     </body>

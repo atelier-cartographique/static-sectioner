@@ -22,8 +22,8 @@ install_requires = [
     "click",
     "python-slugify"
 ]
-packages = find_packages('src')
-package_dir = {'sectioner': 'src/sectioner'}
+packages = ['sectioner']
+package_dir = {'sectioner': 'sectioner'}
 package_data = {'sectioner': ['data/*']}
 entry_points = {'console_scripts': [ 'sectioner=sectioner.sectioner:import_command']}
 
