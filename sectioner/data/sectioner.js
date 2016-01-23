@@ -664,7 +664,7 @@ function Pager (elem, collection, index) {
     Object.defineProperty(this, 'threshold', {
         get: function () {
             var rect = elem.getBoundingClientRect(),
-                tr = Math.floor(rect.height * 0.3);
+                tr = [Math.floor(rect.width * 0.3), Math.floor(rect.height * 0.3)];
             return tr;
         }
     });
@@ -770,7 +770,7 @@ Pager.prototype.setHandlers = function () {
     this.bindCallback('wheel', true);
     this.node.setAttribute('tabindex', -1);
     this.node.focus();
-    this.bindCallback('keydown', true); // well, difficult to manage focus though
+    this.bindCallback('keydown', false); // well, difficult to manage focus though
 
 
     this.pendings = [];
@@ -799,11 +799,13 @@ Pager.prototype.start = function (pos) {
     this.isStarted = true;
     this.wheelDeltas = [];
     this.startPos = pos;
+    this.touchDirection = -1;
 };
 
 Pager.prototype.stop = function () {
     this.isStarted = false;
     this.startPos = [0,0];
+    this.touchDirection = -1;
 };
 
 Pager.prototype.touchstart = function (event) {
@@ -830,10 +832,35 @@ Pager.prototype.touchmove = function (event) {
     var id = this.currentTouchId,
         touch = touchFind(event, id);
     if (touch) {
-        var pos = getTouchEventPos(event, id),
-            dpos = pos[this.direction],
-            offset = this.startPos - dpos;
-        this.checkOffset(offset);
+        var pos = getTouchEventPos(event, id);
+
+        if (this.touchDirection < 0) {
+            var startPos = this.startPos,
+                vdiff = Math.abs(startPos[1] - pos[1]),
+                hdiff = Math.abs(startPos[0] - pos[0]);
+
+            if (vdiff > hdiff) {
+                this.touchDirection = DIRECTION.VERTICAL;
+            }
+            else {
+                this.touchDirection = DIRECTION.HORIZONTAL;
+            }
+
+        }
+        var dir = this.touchDirection,
+            offset = pos[dir] - this.startPos[dir];
+        if (DIRECTION.HORIZONTAL === dir) {
+            var cp = this.getCurrentPage(),
+                slider = cp.slider;
+            if (slider) {
+                this.checkOffset(offset, dir,
+                                 slider.previous, slider.next, slider);
+            }
+        }
+        else {
+            this.checkOffset(offset, dir,
+                             this.pagePrevious, this.pageNext);
+        }
     }
 };
 
@@ -869,18 +896,20 @@ Pager.prototype.wheel = function (event) {
     else {
         offset = delta;
     }
-    return this.checkOffset(offset * 10);
+    return this.checkOffset(offset * 10, DIRECTION.VERTICAL,
+                            this.pagePrevious, this.pageNext);
 };
 
-Pager.prototype.checkOffset = function (offset, threshold) {
-    var threshold = threshold || this.threshold,
+Pager.prototype.checkOffset = function (offset, dir, prev, next, ctx) {
+    var threshold = this.threshold[dir],
         absOffset = Math.abs(offset);
+    console.log('check', offset, threshold);
     if (absOffset >= threshold) {
         if (offset < 0) {
-            this.pagePrevious();
+            prev.call(ctx || this);
         }
         else {
-            this.pageNext();
+            next.call(ctx || this);
         }
         return true;
     }
