@@ -1074,7 +1074,6 @@ function Menu (container, pager) {
     this.container = container;
     this.pager = pager;
     this.listContainer = container.querySelector('[data-role="menu-items"]');
-    this.menuToggle = container.querySelector('[data-role="menu-toggle"]');
     this.build();
 }
 
@@ -1098,30 +1097,46 @@ Menu.prototype.build = function () {
             elem.addEventListener('click', this.navigator(idx), false);
         }
     }
-
-    if (this.menuToggle) {
-        this.menuToggle.addEventListener('click',
-                                         this.toggle('menu-on', 'menu-off'),
-                                         false);
-    }
 };
 
-Menu.prototype.toggle = function (onClass, offClass) {
-    var container = this.container,
-        visible = false;
-    addClass(container, offClass);
-    return function () {
-        if (visible) {
-            removeClass(container, onClass);
-            addClass(container, offClass);
+
+function Toggler (elem) {
+    var on = 'on',
+        off = 'off';
+
+    var selector = elem.getAttribute('data-target'),
+            targets = document.querySelectorAll(selector),
+        isOn = false;
+
+    function onner (node) {
+        removeClass(node, off);
+        addClass(node, on);
+    }
+
+    function offer (node) {
+            removeClass(node, on);
+            addClass(node, off);
+    }
+
+    function toggle (evt) {
+        var i = 0;
+        if (isOn) {
+            offer(elem);
+            for (; i < targets.length; i++) {
+                offer(targets.item(i));
+            }
         }
         else {
-            removeClass(container, offClass);
-            addClass(container, onClass);
+            onner(elem);
+            for (; i < targets.length; i++) {
+                onner(targets.item(i));
+            }
         }
-        visible = !visible;
-    };
-};
+        isOn = !isOn;
+    }
+
+    elem.addEventListener('click', toggle, false);
+}
 
 document.onreadystatechange = function () {
     if (document.readyState === "interactive") {
@@ -1136,6 +1151,12 @@ document.onreadystatechange = function () {
         var pager = new Pager(viewport, Sectioner.pages, index);
         if (menu) {
             new Menu(menu, pager);
+        }
+
+        var togglers = document.querySelectorAll('[data-role="toggle"]');
+
+        for (var t = 0; t < togglers.length; t++) {
+            new Toggler(togglers.item(t));
         }
     }
 };
