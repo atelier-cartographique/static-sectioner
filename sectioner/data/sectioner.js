@@ -502,11 +502,27 @@ function Page (parent, data, index, direction) {
     Object.defineProperty(this, 'index', {value: index});
 
 
+
     this.offset = 0;
     this.callbacks = [];
 
     this.attachSlider(pageData);
     mkEmiter(this, this.node);
+
+    var navPrevious = node.querySelector('[data-role="page.previous"]'),
+        navNext = node.querySelector('[data-role="page.next"]'),
+        that = this;
+
+    if (navPrevious) {
+        navPrevious.addEventListener('click', function () {
+            that.emit('previous');
+        }, false);
+    }
+    if (navNext) {
+        navNext.addEventListener('click', function () {
+            that.emit('next');
+        }, false);
+    }
 }
 
 Page.prototype.attachSlider = function (pageData) {
@@ -831,6 +847,11 @@ Pager.prototype.setHandlers = function () {
         }
     }, this);
 
+    this.each(function(page){
+        page.on('previous', this.pagePrevious, this);
+        page.on('next', this.pageNext, this);
+    }, this);
+
 };
 
 
@@ -900,9 +921,9 @@ Pager.prototype.touchmove = function (event) {
                 pos[1] - [startPos[1] + tr[0]]
             ];
         this.touchDeltas.push(delta);
-console.log('POS', pos);
-console.log('TR', tr);
-console.log('DELTA', delta);
+// console.log('POS', pos);
+// console.log('TR', tr);
+// console.log('DELTA', delta);
         {
             var debugPos = startPos[1] + tr[1] + delta[1];
             console.log('DEBUG', debugPos === pos[1]);
