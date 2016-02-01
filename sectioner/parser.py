@@ -49,7 +49,7 @@ class TemplateParser(HTMLParser):
         self.result.append(data)
 
     def handle_comment(self, data):
-        self.result('<!-- {} -->'.format(data))
+        self.result.append('<!-- {} -->'.format(data))
 
     def handle_entityref(self, name):
         self.result.append(html5[name])
