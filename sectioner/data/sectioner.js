@@ -4,7 +4,7 @@
  */
 
 
-"use strict";
+'use strict';
 
 
 var KEY = {
@@ -189,47 +189,6 @@ function scheduleDetach (elem) {
 
 
 
-function getMouseEventPos (ev) {
-    if (ev instanceof MouseEvent) {
-        var target = ev.target,
-            trect = target.getBoundingClientRect();
-            return [
-                ev.clientX - trect.left,
-                ev.clientY - trect.top
-            ];
-    }
-    return [0, 0];
-}
-
-
-function touchFind (ev, id) {
-    var touches = ev.changedTouches,
-        item, touch;
-    for (var i = 0; i < touches.length; i++) {
-        item = touches.item(i);
-        if (id === item.identifier) {
-            touch = item;
-            break;
-        }
-    }
-    return touch;
-}
-
-
-function getTouchEventPos (ev, id) {
-    if (ev instanceof TouchEvent) {
-        var touch = touchFind(ev, id);
-        if (touch) {
-            var target = ev.target,
-                trect = target.getBoundingClientRect();
-            return [
-                touch.clientX - trect.left,
-                touch.clientY - trect.top
-            ];
-        }
-    }
-    return [0, 0];
-}
 
 var SZ = {
     WIDTH: 0,
@@ -687,7 +646,7 @@ function Pager (elem, collection, index) {
             page.setStyle('zIndex', ZINDEX.FRONT);
         }
         var iOffset = i - this.index;
-        console.log('initial position', i, iOffset * height);
+        // console.log('initial position', i, iOffset * height);
         page.setOffset(iOffset * height);
         pages.push(page);
     }
@@ -695,6 +654,48 @@ function Pager (elem, collection, index) {
     Object.defineProperty(this, 'pages', {value: pages});
     this.setHandlers();
 }
+
+Pager.prototype.getMouseEventPos = function (ev) {
+    if (ev instanceof MouseEvent) {
+        var target = this.node,
+            trect = target.getBoundingClientRect();
+            return [
+                ev.clientX - trect.left,
+                ev.clientY - trect.top
+            ];
+    }
+    return [0, 0];
+};
+
+
+Pager.prototype.touchFind = function (ev, id) {
+    var touches = ev.changedTouches,
+        item, touch;
+    for (var i = 0; i < touches.length; i++) {
+        item = touches.item(i);
+        if (id === item.identifier) {
+            touch = item;
+            break;
+        }
+    }
+    return touch;
+};
+
+Pager.prototype.getTouchEventPos = function (ev, id) {
+    if (ev instanceof TouchEvent) {
+        var touch = this.touchFind(ev, id);
+        if (touch) {
+            var target = this.node,
+                trect = target.getBoundingClientRect();
+            return [
+                touch.clientX - trect.left,
+                touch.clientY - trect.top
+            ];
+        }
+    }
+    return [0, 0];
+};
+
 
 Pager.prototype.getCurrentPage = function () {
     return this.pages[this.index];
@@ -793,6 +794,7 @@ Pager.prototype.setHandlers = function () {
 
 
 Pager.prototype.start = function (pos) {
+    console.log('START', pos);
     if (this.isStarted) {
         this.stop();
     }
@@ -800,9 +802,11 @@ Pager.prototype.start = function (pos) {
     this.wheelDeltas = [];
     this.startPos = pos;
     this.touchDirection = -1;
+    this.touchDeltas = [[0,0]];
 };
 
 Pager.prototype.stop = function () {
+    console.log('STOP');
     this.isStarted = false;
     this.startPos = [0,0];
     this.touchDirection = -1;
@@ -814,11 +818,24 @@ Pager.prototype.touchstart = function (event) {
         touch = touches[0];
 
     this.currentTouchId = touch.identifier;
-    this.start(getTouchEventPos(event, this.currentTouchId));
+    this.start(this.getTouchEventPos(event, this.currentTouchId));
 };
 
 Pager.prototype.touchend = function (event) {
     console.log('Pager.touchend');
+
+    if (this.isStarted) {
+        var sp = this.startPos,
+            delta = this.touchDeltas.reduce(function(a,b){
+            return [a[0] + b[0], a[1] + b[1]];
+        }, [sp[0], sp[1]]);
+        console.log('Pager.touchend reset', delta);
+        this.each(function(page){
+            page.translate(-delta[DIRECTION.VERTICAL], {
+                duration: SPEED.MEDIUM
+            });
+        });
+    }
     this.stop();
 };
 
@@ -830,13 +847,27 @@ Pager.prototype.touchcancel = function (event) {
 Pager.prototype.touchmove = function (event) {
     console.log('Pager.touchmove');
     var id = this.currentTouchId,
-        touch = touchFind(event, id);
+        touch = this.touchFind(event, id);
     if (touch) {
-        var pos = getTouchEventPos(event, id);
-
+        var pos = this.getTouchEventPos(event, id),
+            startPos = this.startPos,
+            tr = this.touchDeltas.reduce(function(a,b){
+                return [a[0] + b[0], a[1] + b[1]];
+            }),
+            delta = [
+                pos[0] - [startPos[0] + tr[0]],
+                pos[1] - [startPos[1] + tr[0]]
+            ];
+        this.touchDeltas.push(delta);
+console.log('POS', pos);
+console.log('TR', tr);
+console.log('DELTA', delta);
+        {
+            var debugPos = startPos[1] + tr[1] + delta[1];
+            console.log('DEBUG', debugPos === pos[1]);
+        }
         if (this.touchDirection < 0) {
-            var startPos = this.startPos,
-                vdiff = Math.abs(startPos[1] - pos[1]),
+            var vdiff = Math.abs(startPos[1] - pos[1]),
                 hdiff = Math.abs(startPos[0] - pos[0]);
 
             if (vdiff > hdiff) {
@@ -847,19 +878,26 @@ Pager.prototype.touchmove = function (event) {
             }
 
         }
+
         var dir = this.touchDirection,
-            offset = pos[dir] - this.startPos[dir];
+            cp = this.getCurrentPage(),
+            offset = pos[dir] - startPos[dir];
+
         if (DIRECTION.HORIZONTAL === dir) {
-            var cp = this.getCurrentPage(),
-                slider = cp.slider;
+            var slider = cp.slider;
             if (slider) {
                 this.checkOffset(offset, dir,
-                                 slider.previous, slider.next, slider);
+                                 slider.next, slider.previous, slider);
             }
         }
         else {
-            this.checkOffset(offset, dir,
-                             this.pagePrevious, this.pageNext);
+            var isPaging = this.checkOffset(offset, dir,
+                             this.pageNext, this.pagePrevious);
+            if (!isPaging) {
+                this.each(function(page){
+                    page.translate(delta[DIRECTION.VERTICAL]);
+                });
+            }
         }
     }
 };
@@ -949,10 +987,15 @@ Pager.prototype.at = function (index) {
 
     var that = this,
         rect = this.node.getBoundingClientRect(),
-        offset = (this.index - index) * rect.height,
+        height = rect.height,
+        // offsets = [], //(this.index - index) * rect.height,
         nextPage = this.pages[index];
 
     this.index = index;
+    //
+    // for (var i = 0; i < this.images.length; i++) {
+    //     offsets.push((i - index) * height);
+    // }
 
     function animationEnd () {
         that.emit('stop:animation');
@@ -971,7 +1014,10 @@ Pager.prototype.at = function (index) {
         nextPage.once('start:animation', function(){
             that.each(function(page){
                 if(page.index !== nextPage.index) {
-                    page.translate(offset, {
+                    // page.translate(offset, {
+                    //     duration: SPEED.SLOW
+                    // });
+                    page.setOffset((page.index - index) * height, {
                         duration: SPEED.SLOW
                     });
                 }

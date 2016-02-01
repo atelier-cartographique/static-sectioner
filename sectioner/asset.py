@@ -30,6 +30,9 @@ class Asset:
         if parent.exists() == False:
             parent.mkdir(parents=True)
 
+    def target_exists (self):
+        return self.target_path.exists()
+
     def process (self):
         self.check_dest()
         with self.source_path.open('rb') as source:
@@ -37,17 +40,11 @@ class Asset:
                 sink.write(source.read())
                 secho("[asset] {} {}".format(self.source_path, self.target_path), fg="green")
 
-class FileAsset:
+class FileAsset(Asset):
 
     def __init__ (self, source, target):
         self.source = source
         self.target_path = target
-
-
-    def check_dest (self):
-        parent = self.target_path.parent
-        if parent.exists() == False:
-            parent.mkdir(parents=True)
 
     def process (self):
         self.check_dest()
@@ -63,6 +60,10 @@ class Compiler:
         self.home = Path(indir)
         self.out = Path(outdir)
         self.assets = []
+
+    def target_exists (self, target):
+        tp = self.out.joinpath(target)
+        return tp.exists()
 
     def add (self, source, target):
         asset = Asset(

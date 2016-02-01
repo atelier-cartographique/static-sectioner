@@ -16,26 +16,35 @@
 
 
 from tempfile import TemporaryFile
-from uuid import uuid4
+from hashlib import md5
+from pathlib import Path
 from PIL import Image
 
 SIZES = (
     2000,
-    # 1800,
+    1800,
     1600,
-    # 1400,
+    1400,
     1200,
-    # 1000,
+    1000,
     800,
-    # 600,
+    600,
     400
     )
 
-def uniq_id (ext=None):
-    u = uuid4()
-    if ext:
-        return '{}.{}'.format(u.hex, ext)
-    return u.hex
+def uniq_id (data):
+    hex = md5(data).hexdigest()
+    return hex
+
+def get_size (w, h, target):
+    if w > h:
+        r = target / w
+    else:
+        r = target / h
+    tw = w * r
+    th = h * r
+    return (tw, th)
+
 
 class WebImage:
 
@@ -44,24 +53,48 @@ class WebImage:
         self.out_dirname = out_dirname
         self.compiler = compiler
 
-    def get_data (self):
-        ppath = self.path.as_posix()
-        comp = self.compiler
-        data = []
-        with Image.open(ppath) as im:
-            orig = TemporaryFile()
-            im.save(orig, 'PNG', optimize=True)
-            target = '{}/{}'.format(self.out_dirname, uniq_id('png'))
-            data.append([im.width, im.height, target])
-            comp.add_file(orig, target)
-            for sz in SIZES:
-                t = im.copy()
-                t.thumbnail((sz,sz), Image.BICUBIC)
-                f = TemporaryFile()
-                t.save(f, 'PNG', optimize=True)
-                target = '{}/{}'.format(self.out_dirname, uniq_id('png'))
-                data.append([t.width, t.height, target])
-                comp.add_file(f, target)
+    def get_target_path (self, basename, sz = None):
+        if sz:
+            return '{}/{}_{}.png'.format(self.out_dirname, basename, sz)
+        return '{}/{}.png'.format(self.out_dirname, basename)
 
+    def build_data (self, im, basename):
+        data = []
+        data.append([im.width, im.height, self.get_target_path(basename)])
+        for sz in SIZES:
+            target_size = get_size(im.width, im.height, sz)
+            target = self.get_target_path(basename, sz)
+            data.append([target_size[0], target_size[1], target])
 
         return data
+
+    def build_images (self, im, basename):
+        comp = self.compiler
+        target = self.get_target_path(basename)
+        orig = TemporaryFile()
+        im.save(orig, 'PNG', optimize=True)
+        comp.add_file(orig, target)
+        for sz in SIZES:
+            t = im.copy()
+            t.thumbnail((sz,sz), Image.BICUBIC)
+            f = TemporaryFile()
+            t.save(f, 'PNG', optimize=True)
+            target = self.get_target_path(basename, sz)
+            comp.add_file(f, target)
+
+
+    def get_data (self):
+        uid = None
+        target_path = None
+        with self.path.open('rb') as image_fd:
+            image_data = image_fd.read()
+            uid = uniq_id(image_data)
+            target_path = Path(self.get_target_path(uid))
+
+        with Image.open(self.path.as_posix()) as im:
+            exists = self.compiler.target_exists(target_path)
+            print('target {} {}'.format(target_path.as_posix(), exists))
+            if False == exists:
+                self.build_images(im, uid)
+
+            return self.build_data(im, uid)
