@@ -43,6 +43,7 @@ def get_text (node):
 
 def get_media_meta (path):
     data = dict()
+    names = []
     if not path.exists():
         return data
     dom = minidom.parse(path.as_posix())
@@ -53,6 +54,7 @@ def get_media_meta (path):
         if not name_attr:
             continue
         name = name_attr.value
+        names.append(name)
         media_data = dict()
         for child in media.childNodes:
             if child.ELEMENT_NODE == child.nodeType:
@@ -61,7 +63,7 @@ def get_media_meta (path):
                 media_data[key] = val
         data[name] = media_data
 
-    return data
+    return (names, data)
 
 def is_image (path):
     if path.is_file():
@@ -90,12 +92,12 @@ class Builder:
         template = self.media_template
         media_path = self.home.joinpath(mediadir).absolute()
         meta_path = media_path.joinpath('meta.xml')
-        meta = get_media_meta(meta_path)
+        names, meta = get_media_meta(meta_path)
         root = 'images'
         items = []
-        for media in media_path.iterdir():
+        for name in names:
+            media = media_path.joinpath(name)
             if is_image(media):
-                name = media.name
                 print("build_media {}".format(media))
                 wi = WebImage(media, 'images', self.compiler)
                 data = dict()
