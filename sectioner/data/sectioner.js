@@ -404,6 +404,16 @@ function Slider (node, data) {
         offset += si.width + this.gap;
     }
 
+    var navPrevious = node.querySelector('[data-role="media.previous"]'),
+        navNext = node.querySelector('[data-role="media.next"]');
+
+    if (navPrevious) {
+        navPrevious.addEventListener('click', _.bind(this.previous, this), false);
+    }
+    if (navNext) {
+        navNext.addEventListener('click', _.bind(this.next, this), false);
+    }
+
     mkEmiter(this, node);
 }
 
