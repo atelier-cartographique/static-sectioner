@@ -500,6 +500,7 @@ function Page (parent, data, index, direction) {
     Object.defineProperty(this, 'node', {value: node});
     Object.defineProperty(this, 'meta', {value: meta});
     Object.defineProperty(this, 'index', {value: index});
+    Object.defineProperty(this, 'data', {value: pageData});
 
 
 
@@ -1040,7 +1041,7 @@ Pager.prototype.keydown = function (event) {
     }
 };
 
-Pager.prototype.at = function (index) {
+Pager.prototype.at = function (index, silent) {
     this.stop();
     index = _.clamp(index, 0, this.pages.length - 1);
 
@@ -1092,6 +1093,10 @@ Pager.prototype.at = function (index) {
         }
         nextPage.setOffset(0, nextOptions);
     });
+
+    if (!silent) {
+        this.emit('change:page');
+    }
 };
 
 Pager.prototype.pagePrevious = function () {
@@ -1171,6 +1176,37 @@ function Toggler (elem) {
     elem.addEventListener('click', toggle, false);
 }
 
+
+function Router (pager) {
+    var hasHistory = ((typeof window !== 'undefined') && window.history && window.history.pushState);
+
+    this.pager = pager;
+    if (hasHistory) {
+        this.history = window.history;
+        pager.on('change:page', this.push, this);
+        window.onpopstate = _.bind(function(evt){
+            this.pop(evt.state);
+        }, this);
+    }
+}
+
+Router.prototype.push = function () {
+    console.log('router.push');
+    if (this.history) {
+        var page = this.pager.getCurrentPage(),
+            pageData = page.data,
+            title = pageData['page.title'],
+            slug = pageData['slug'];
+        this.history.pushState(page.index, title, '/' + slug + '.html');
+    }
+};
+
+
+Router.prototype.pop = function (index) {
+    console.log('router.pop');
+    this.pager.at(index, true);
+};
+
 document.onreadystatechange = function () {
     if (document.readyState === "interactive") {
         var viewport = document.querySelector("#viewport");
@@ -1182,6 +1218,8 @@ document.onreadystatechange = function () {
         }
 
         var pager = new Pager(viewport, Sectioner.pages, index);
+        var router = new Router(pager);
+
         if (menu) {
             new Menu(menu, pager);
         }
