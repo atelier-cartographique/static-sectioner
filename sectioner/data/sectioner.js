@@ -199,6 +199,15 @@ function toggleClass (elem, c) {
     }
 }
 
+function setDocumentTitle (title) {
+    var headerNode = document.querySelector('head'),
+        titleNode = headerNode.querySelector('title'),
+        toInsert = document.createTextNode(title);
+
+    emptyElement(titleNode);
+    titleNode.appendChild(toInsert);
+}
+
 function hasClass (elem, c) {
     var ecStr = elem.getAttribute('class');
     var ec = ecStr ? ecStr.split(' ') : [];
@@ -1097,6 +1106,8 @@ Pager.prototype.at = function (index, silent) {
     if (!silent) {
         this.emit('change:page');
     }
+
+    setDocumentTitle(nextPage.data['page.title'] || 'untitled');
 };
 
 Pager.prototype.pagePrevious = function () {
@@ -1202,7 +1213,7 @@ Router.prototype.push = function () {
 };
 
 
-Router.prototype.pop = function (index) {
+Router.prototype.pop = function (index, title) {
     console.log('router.pop');
     this.pager.at(index, true);
 };
