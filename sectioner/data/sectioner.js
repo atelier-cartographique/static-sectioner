@@ -968,17 +968,19 @@ Pager.prototype.wheel = function (event) {
     console.log('Pager.wheel');
     var that = this;
     function wheelingStoper (){
+        console.log('Pager.wheel.wheelingStoper');
         that.isWheeling = false;
     }
     if (this.isWheeling) {
-        clearTimeout(this.wheelingStopId);
-        this.wheelingStopId = setTimeout(wheelingStoper, 1000);
+        // clearTimeout(this.wheelingStopId);
+        // this.wheelingStopId = setTimeout(wheelingStoper, 600);
         return;
     }
     if (!this.isStarted) {
         this.start([0,0]);
         this.isWheeling = true;
-        this.wheelingStopId = setTimeout(wheelingStoper, 1000);
+        clearTimeout(this.wheelingStopId);
+        this.wheelingStopId = setTimeout(wheelingStoper, 600);
     }
     this.wheelDeltas.push(event.deltaY);
     var delta = this.wheelDeltas.reduce(function(a,b){return a + b;}),
