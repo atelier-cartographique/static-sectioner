@@ -514,6 +514,7 @@ function Page (parent, data, index, direction) {
 
 
     this.offset = 0;
+    this.bookmark = null;
     this.callbacks = [];
 
     this.attachSlider(pageData);
@@ -553,6 +554,20 @@ Page.prototype.loadMediaMeta = function () {
     if (this.slider) {
         this.meta.innerHTML = this.slider.meta;
     }
+};
+
+
+Page.prototype.setBookmark = function () {
+    this.bookmark = this.offset;
+};
+
+Page.prototype.resetBookmark = function () {
+    var offset = this.bookmark;
+    if (null === offset) {
+        return;
+    }
+    this.bookmark = null;
+    this.setOffset(offset);
 };
 
 Page.prototype.recordOffset = function (offset) {
@@ -816,7 +831,7 @@ Pager.prototype.bindCallback = function (method, prevent) {
 
     var callback = function () {
         var event = arguments[0];
-        console.log(event);
+        // console.log(event);
         if (prevent) {
             event.preventDefault();
             event.stopPropagation();
@@ -877,6 +892,10 @@ Pager.prototype.start = function (pos) {
     this.touchStartTime = _.now();
     this.touchDirection = -1;
     this.touchDeltas = [[0,0]];
+
+    this.each(function(page){
+        page.setBookmark();
+    });
 };
 
 Pager.prototype.stop = function () {
@@ -901,22 +920,23 @@ Pager.prototype.touchend = function (event) {
     if (this.isStarted) {
         var tsDiff = _.now() - this.touchStartTime;
         if (tsDiff < 200) {
-            console.warn('end of touch in ', tsDiff);
-            console.warn('converted into a click');
-            // event.target.dispatchEvent(new Event('click'));
             event.target.click();
-            return;
         }
-        var sp = this.startPos,
-            delta = this.touchDeltas.reduce(function(a,b){
-            return [a[0] + b[0], a[1] + b[1]];
-        }, [sp[0], sp[1]]);
-        console.log('Pager.touchend reset', delta);
+
+        // var sp = this.startPos,
+        //     delta = this.touchDeltas.reduce(function(a,b){
+        //     return [a[0] + b[0], a[1] + b[1]];
+        // }, [sp[0], sp[1]]);
+        //
+        // console.log('Pager.touchend reset', delta);
         this.each(function(page){
-            page.translate(-delta[DIRECTION.VERTICAL], {
-                duration: SPEED.MEDIUM
-            });
+            page.resetBookmark();
         });
+        // this.each(function(page){
+        //     page.translate(-delta[DIRECTION.VERTICAL], {
+        //         duration: SPEED.MEDIUM
+        //     });
+        // });
     }
     this.stop();
 };
@@ -937,17 +957,10 @@ Pager.prototype.touchmove = function (event) {
                 return [a[0] + b[0], a[1] + b[1]];
             }),
             delta = [
-                pos[0] - [startPos[0] + tr[0]],
-                pos[1] - [startPos[1] + tr[0]]
+                (pos[0] - startPos[0]) - tr[0],
+                (pos[1] - startPos[1]) - tr[1]
             ];
         this.touchDeltas.push(delta);
-// console.log('POS', pos);
-// console.log('TR', tr);
-// console.log('DELTA', delta);
-        {
-            var debugPos = startPos[1] + tr[1] + delta[1];
-            console.log('DEBUG', debugPos === pos[1]);
-        }
         if (this.touchDirection < 0) {
             var vdiff = Math.abs(startPos[1] - pos[1]),
                 hdiff = Math.abs(startPos[0] - pos[0]);
@@ -1025,7 +1038,7 @@ Pager.prototype.wheel = function (event) {
 Pager.prototype.checkOffset = function (offset, dir, prev, next, ctx) {
     var threshold = this.threshold[dir],
         absOffset = Math.abs(offset);
-    console.log('check', offset, threshold);
+    // console.log('check', offset, threshold);
     if (absOffset >= threshold) {
         if (offset < 0) {
             prev.call(ctx || this);
