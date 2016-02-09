@@ -1149,14 +1149,32 @@ Menu.prototype.build = function () {
 };
 
 
+function Toggle () {
+    this.status = false;
+}
+
+Toggle.prototype.isOn = function () {
+    return !!(this.status);
+};
+
+Toggle.prototype.t = function () {
+    this.status = !this.status;
+    return this;
+};
+
+
 function Toggler (elem) {
     var on = 'on',
         off = 'off';
 
     var selector = elem.getAttribute('data-target'),
-            targets = document.querySelectorAll(selector),
-        isOn = false;
+        targets = document.querySelectorAll(selector),
+        id = _.uniqueId('T.');
 
+    elem.setAttribute('id', id);
+
+    this.registerTarget(selector);
+    var tog = this.registry[selector];
     function onner (node) {
         removeClass(node, off);
         addClass(node, on);
@@ -1168,8 +1186,9 @@ function Toggler (elem) {
     }
 
     function toggle (evt) {
+        console.log('toggle enter', id, tog.isOn());
         var i = 0;
-        if (isOn) {
+        if (tog.isOn()) {
             offer(elem);
             for (; i < targets.length; i++) {
                 offer(targets.item(i));
@@ -1181,12 +1200,21 @@ function Toggler (elem) {
                 onner(targets.item(i));
             }
         }
-        isOn = !isOn;
+        tog.t();
+        console.log('toggle exit', id, tog.isOn());
     }
 
     elem.addEventListener('click', toggle, false);
 }
 
+
+Toggler.prototype.registry = {};
+
+Toggler.prototype.registerTarget = function(target) {
+    if (!(target in this.registry)) {
+        this.registry[target] = new Toggle();
+    }
+};
 
 function Router (pager) {
     var hasHistory = ((typeof window !== 'undefined') && window.history && window.history.pushState);
@@ -1235,10 +1263,11 @@ document.onreadystatechange = function () {
             new Menu(menu, pager);
         }
 
-        var togglers = document.querySelectorAll('[data-role="toggle"]');
+        var togglerElements = document.querySelectorAll('[data-role="toggle"]'),
+            togglers = [];
 
-        for (var t = 0; t < togglers.length; t++) {
-            new Toggler(togglers.item(t));
+        for (var t = 0; t < togglerElements.length; t++) {
+            togglers.push(new Toggler(togglerElements.item(t)));
         }
     }
 };
