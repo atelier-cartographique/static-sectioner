@@ -816,6 +816,7 @@ Pager.prototype.bindCallback = function (method, prevent) {
 
     var callback = function () {
         var event = arguments[0];
+        console.log(event);
         if (prevent) {
             event.preventDefault();
             event.stopPropagation();
@@ -873,6 +874,7 @@ Pager.prototype.start = function (pos) {
     this.isStarted = true;
     this.wheelDeltas = [];
     this.startPos = pos;
+    this.touchStartTime = _.now();
     this.touchDirection = -1;
     this.touchDeltas = [[0,0]];
 };
@@ -897,6 +899,14 @@ Pager.prototype.touchend = function (event) {
     console.log('Pager.touchend');
 
     if (this.isStarted) {
+        var tsDiff = _.now() - this.touchStartTime;
+        if (tsDiff < 200) {
+            console.warn('end of touch in ', tsDiff);
+            console.warn('converted into a click');
+            // event.target.dispatchEvent(new Event('click'));
+            event.target.click();
+            return;
+        }
         var sp = this.startPos,
             delta = this.touchDeltas.reduce(function(a,b){
             return [a[0] + b[0], a[1] + b[1]];
