@@ -712,9 +712,7 @@ function Pager (elem, collection, index) {
 
     this.index = index || 0;
     emptyElement(elem);
-    var pages = [],
-        rect = elem.getBoundingClientRect(),
-        height = rect.height;
+    var pages = [];
 
     for (var i = 0; i < collection.length; i++) {
         var page = new Page(this.node, collection, i);
@@ -727,15 +725,28 @@ function Pager (elem, collection, index) {
         else {
             page.setStyle('zIndex', ZINDEX.FRONT);
         }
-        var iOffset = i - this.index;
-        // console.log('initial position', i, iOffset * height);
-        page.setOffset(iOffset * height);
         pages.push(page);
     }
 
     Object.defineProperty(this, 'pages', {value: pages});
+
+    this.resetPositions();
     this.setHandlers();
 }
+
+Pager.prototype.resetPositions = funtion () {
+    var pages = this.pages,
+        index = this.index,
+        rect = this.node.getBoundingClientRect(),
+        height = rect.height;
+
+    for (var i = 0; i < pages.length; i++) {
+        var page = pages[i],
+            iOffset = i - this.index;
+
+        page.setOffset(iOffset * height);
+    }
+};
 
 Pager.prototype.getMouseEventPos = function (ev) {
     if (ev instanceof MouseEvent) {
@@ -1279,13 +1290,16 @@ document.onreadystatechange = function () {
             return;
         }
 
+        window.addEventListener("resize", _.debounce(function(){
+            console.log('resize', _.uniqueId('R.'));
+        }, 500), false);
+
         var pager = new Pager(viewport, Sectioner.pages, index);
         var router = new Router(pager);
 
         if (menu) {
             new Menu(menu, pager);
         }
-
         var togglerElements = document.querySelectorAll('[data-role="toggle"]'),
             togglers = [];
 

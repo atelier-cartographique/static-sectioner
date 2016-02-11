@@ -77,7 +77,8 @@ class Compiler:
             source,
             self.out.joinpath(target)
         )
-        self.assets.append(asset)
+        # let's do it now and realease the source
+        asset.process()
 
     def run (self):
         for asset in self.assets:
