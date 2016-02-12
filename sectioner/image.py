@@ -72,6 +72,8 @@ class WebImage:
         comp = self.compiler
         target = self.get_target_path(basename)
         orig = TemporaryFile()
+        if im.mode == "CMYK":
+            im = im.convert("RGB")
         im.save(orig, 'PNG', optimize=True)
         comp.add_file(orig, target)
         for sz in SIZES:
