@@ -3,7 +3,7 @@
  *
  */
 
-
+(function(window){
 'use strict';
 
 
@@ -100,7 +100,7 @@ function randomColor () {
 var ZINDEX = {
     FRONT: 10,
     BACK: 1
-}
+};
 
 Object.freeze(ZINDEX);
 
@@ -108,14 +108,14 @@ var SPEED = {
     FAST: 100,
     MEDIUM: 500,
     SLOW: 1000
-}
+};
 
 Object.freeze(SPEED);
 
 var DIRECTION = {
     VERTICAL: 1,
     HORIZONTAL: 0
-}
+};
 
 Object.freeze(DIRECTION);
 
@@ -211,7 +211,7 @@ function setDocumentTitle (title) {
 function hasClass (elem, c) {
     var ecStr = elem.getAttribute('class');
     var ec = ecStr ? ecStr.split(' ') : [];
-    return !(_.indexOf(ec, c) < 0)
+    return !(_.indexOf(ec, c) < 0);
 }
 
 function removeClass (elem, c) {
@@ -251,7 +251,7 @@ function SImage (parent, options) {
     var orig = this.sizes[0],
         aspect = orig[SZ.WIDTH] / orig[SZ.HEIGHT];
     this.offset = 0;
-    this.height = parentRect.height,
+    this.height = parentRect.height;
     this.width = this.height * aspect;
     node.setAttribute('class', 'slider-image');
     node.setAttribute('width', this.width);
@@ -263,7 +263,7 @@ function SImage (parent, options) {
 
 SImage.prototype.getMeta = function () {
     return (this.html || '');
-}
+};
 
 SImage.prototype.findSize = function () {
     var sizes = this.sizes,
@@ -307,7 +307,7 @@ SImage.prototype.recorder = function (fn) {
         if (fn) {
             fn(elem, c, r, s, t);
         }
-    };
+    }
     return g;
 };
 
@@ -324,7 +324,7 @@ SImage.prototype.completer = function (fn) {
                 console.error('Page.completer', e);
             }
         }
-    };
+    }
     return g;
 };
 
@@ -472,7 +472,7 @@ Slider.prototype.at = function (index) {
     var lastImage = _.last(this.images);
     lastImage.once('stop:animation', function(){
         this.isAnimating = false;
-    }, this)
+    }, this);
     _.each(this.images, function(im){
         im.translate(offset, {
             duration: SPEED.MEDIUM
@@ -484,11 +484,11 @@ Slider.prototype.at = function (index) {
 
 Slider.prototype.next = function () {
     this.at(this.index + 1);
-}
+};
 
 Slider.prototype.previous = function () {
     this.at(this.index - 1);
-}
+};
 
 
 
@@ -581,7 +581,7 @@ Page.prototype.recorder = function (fn) {
         if (fn) {
             fn(elem, c, r, s, t);
         }
-    };
+    }
     return g;
 };
 
@@ -734,7 +734,7 @@ function Pager (elem, collection, index) {
     this.setHandlers();
 }
 
-Pager.prototype.resetPositions = funtion () {
+Pager.prototype.resetPositions = function () {
     var pages = this.pages,
         index = this.index,
         rect = this.node.getBoundingClientRect(),
@@ -1184,6 +1184,7 @@ Menu.prototype.build = function () {
 
 
 function Toggle () {
+    console.log('Toggle.new');
     this.status = false;
 }
 
@@ -1197,18 +1198,32 @@ Toggle.prototype.t = function () {
 };
 
 
+
+
 function Toggler (elem) {
     var on = 'on',
         off = 'off';
 
     var selector = elem.getAttribute('data-target'),
+        initStateAttr = elem.getAttribute('data-state') || 'off',
         targets = document.querySelectorAll(selector),
-        id = _.uniqueId('T.');
+        id = _.uniqueId('T.'),
+        initState = false;
+
+    var attrOn = ['1', 'true', 'visible', 'on'];
+
+    _.each(attrOn, function (pat) {
+        var re = new RegExp('^' + pat + '$', 'i');
+        if (re.test(initStateAttr)) {
+            initState = true;
+        }
+    });
 
     elem.setAttribute('id', id);
-
-    this.registerTarget(selector);
+    this.registerTarget(selector, initState);
     var tog = this.registry[selector];
+    console.log('TOGGLER', selector, initState, tog.isOn());
+
     function onner (node) {
         removeClass(node, off);
         addClass(node, on);
@@ -1219,10 +1234,9 @@ function Toggler (elem) {
             addClass(node, off);
     }
 
-    function toggle (evt) {
-        console.log('toggle enter', id, tog.isOn());
+    function toggle (state) {
         var i = 0;
-        if (tog.isOn()) {
+        if (state) {
             offer(elem);
             for (; i < targets.length; i++) {
                 offer(targets.item(i));
@@ -1234,11 +1248,22 @@ function Toggler (elem) {
                 onner(targets.item(i));
             }
         }
-        tog.t();
-        console.log('toggle exit', id, tog.isOn());
     }
 
-    elem.addEventListener('click', toggle, false);
+    function toggleHandler (evt) {
+        toggle(tog.isOn());
+        tog.t();
+    }
+
+    if (!tog.isOn()) {
+        if (initState) {
+            console.log('\t switched on by', id);
+            toggle(false);
+            tog.t();
+        }
+    }
+
+    elem.addEventListener('click', toggleHandler, false);
 }
 
 
@@ -1308,3 +1333,5 @@ document.onreadystatechange = function () {
         }
     }
 };
+
+})(window);
