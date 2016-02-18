@@ -39,7 +39,9 @@ class TemplateParser(HTMLParser):
 
         if 'data-role' in attrs_dict:
             role = attrs_dict['data-role']
+            print('TemplateRole> {}'.format(role))
             if role in self.template_data:
+                print('\t> {}'.format(len(self.template_data[role])))
                 self.result.append(self.template_data[role])
 
     def handle_endtag(self, tag):

@@ -21,12 +21,17 @@ from .parser import TemplateParser
 
 parser = TemplateParser()
 
-def load_template (dirpath, name):
+def load_template (dirpath, name, required=True):
     home = Path(dirpath)
     template_path = home.joinpath(name + '.html')
-    with template_path.open() as template_file:
-        template = template_file.read()
-
+    try:
+        with template_path.open() as template_file:
+            template = template_file.read()
+    except Exception as exc:
+        if required:
+            raise exc
+        else:
+            return ''
     return template
 
 

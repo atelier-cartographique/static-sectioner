@@ -1157,6 +1157,15 @@ function Menu (container, pager) {
     this.container = container;
     this.pager = pager;
     this.listContainer = container.querySelector('[data-role="menu-items"]');
+    var attributeString = this.listContainer.getAttribute('data-attributes') || '';
+    var attrs = {};
+    _.each(attributeString.split(';'), function (item) {
+        var kv = item.split('='),
+            k = kv[0].trim(),
+            v = kv[1].trim();
+        attrs[k] = v;
+    });
+    this.attrs = attrs;
     this.build();
 }
 
@@ -1170,11 +1179,16 @@ Menu.prototype.navigator = function (index) {
 Menu.prototype.build = function () {
     if (this.listContainer) {
         var pages = Sectioner.pages;
+        var fattrs = function (elem) {
+            return function (v, k) {
+                elem.setAttribute(k, v);
+            };
+        };
         for (var idx = 0; idx < pages.length; idx++) {
             var page = pages[idx],
                 title = page['page.title'];
             var elem = document.createElement('div');
-            elem.setAttribute('class', 'menu-item');
+            _.each(this.attrs, fattrs(elem));
             elem.innerHTML = title;
             this.listContainer.appendChild(elem);
             elem.addEventListener('click', this.navigator(idx), false);
