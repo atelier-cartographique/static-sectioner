@@ -149,6 +149,9 @@ class Builder:
             mediadir = page.attributes['media'].value
             data['media'] = self.build_media(mediadir)
 
+        if 'slug' in attr_keys:
+            data['slug'] = page.attributes['slug'].value
+
         return data
 
     def build (self):
