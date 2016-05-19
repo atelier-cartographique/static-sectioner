@@ -90,15 +90,11 @@ class WebImage:
 
 
     def get_data (self):
-        uid = None
-        target_path = None
-        with self.path.open('rb') as image_fd:
-            image_data = image_fd.read()
-            uid = uniq_id(image_data)
-            target_path = Path(self.get_target_path(uid))
-
         with Image.open(self.path.as_posix()) as im:
             self.format = im.format
+            image_data = im.getdata()
+            uid = uniq_id(image_data)
+            target_path = Path(self.get_target_path(uid))
             exists = self.compiler.target_exists(target_path)
             print('target {} {}'.format(target_path.as_posix(), exists))
             if False == exists:
