@@ -680,7 +680,7 @@ Page.prototype.setStyle = function (key, value) {
 /**
  * Constructor of a Pager
  * @param   {DOMElement} elem      An element to attach the Pager to
- * @param   {Array}      pages     [[Description]]
+ * @param   {Array}      collection     [[Description]]
  * @param   {number}   index     optional, defaulut to 0, internal index initializer
  * @returns {[[Type]]}   [[Description]]
  */

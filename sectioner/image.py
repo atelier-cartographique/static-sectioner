@@ -53,10 +53,14 @@ class WebImage:
         self.out_dirname = out_dirname
         self.compiler = compiler
 
+    def get_extension (self):
+        return self.format.lower()
+
     def get_target_path (self, basename, sz = None):
+        ext = self.get_extension()
         if sz:
-            return '{}/{}_{}.png'.format(self.out_dirname, basename, sz)
-        return '{}/{}.png'.format(self.out_dirname, basename)
+            return '{}/{}_{}.{}'.format(self.out_dirname, basename, sz, ext)
+        return '{}/{}.{}'.format(self.out_dirname, basename, ext)
 
     def build_data (self, im, basename):
         data = []
@@ -74,13 +78,13 @@ class WebImage:
         orig = TemporaryFile()
         if im.mode == "CMYK":
             im = im.convert("RGB")
-        im.save(orig, 'PNG', optimize=True)
+        im.save(orig, self.format, optimize=True)
         comp.add_file(orig, target)
         for sz in SIZES:
             t = im.copy()
             t.thumbnail((sz,sz), Image.BICUBIC)
             f = TemporaryFile()
-            t.save(f, 'PNG', optimize=True)
+            t.save(f, self.format, optimize=True)
             target = self.get_target_path(basename, sz)
             comp.add_file(f, target)
 
@@ -94,6 +98,7 @@ class WebImage:
             target_path = Path(self.get_target_path(uid))
 
         with Image.open(self.path.as_posix()) as im:
+            self.format = im.format
             exists = self.compiler.target_exists(target_path)
             print('target {} {}'.format(target_path.as_posix(), exists))
             if False == exists:
