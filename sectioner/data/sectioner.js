@@ -680,7 +680,7 @@ Page.prototype.setStyle = function (key, value) {
 /**
  * Constructor of a Pager
  * @param   {DOMElement} elem      An element to attach the Pager to
- * @param   {Array}      collection     [[Description]]
+ * @param   {Array}      pages     [[Description]]
  * @param   {number}   index     optional, defaulut to 0, internal index initializer
  * @returns {[[Type]]}   [[Description]]
  */
@@ -1167,6 +1167,22 @@ function Menu (container, pager) {
     });
     this.attrs = attrs;
     this.build();
+
+    pager.node.addEventListener('click', function (event) {
+        var eventTarget = event.target,
+            role = eventTarget.getAttribute('data-role'),
+            target = eventTarget.getAttribute('data-target');
+        if (role
+            && ('toggle' === role)
+            && target
+            && ('.menu' === target)) {
+            return;
+        }
+        var t = Toggler.prototype.getToggle('.menu');
+        if (t && t.isOn()) {
+            t.toggle(true);
+        }
+    }, false);
 }
 
 Menu.prototype.navigator = function (index) {
@@ -1197,10 +1213,49 @@ Menu.prototype.build = function () {
 };
 
 
-function Toggle () {
-    console.log('Toggle.new');
+function Toggle (selector) {
     this.status = false;
+    this.targets = document.querySelectorAll(selector);
 }
+
+Toggle.prototype.getTargets = function () {
+    return this.targets;
+};
+
+Toggle.prototype.toggle = function (state, elem) {
+    var on = 'on',
+        off = 'off';
+
+    function onner (node) {
+        removeClass(node, off);
+        addClass(node, on);
+    }
+
+    function offer (node) {
+        removeClass(node, on);
+        addClass(node, off);
+    }
+
+    var targets = this.getTargets(),
+        op = state ? offer : onner,
+        i = 0;
+
+    if (elem) {
+        op(elem);
+    }
+    for (; i < targets.length; i++) {
+        op(targets.item(i));
+    }
+    this.t();
+};
+
+Toggle.prototype.getHandler = function (elem) {
+    var that = this;
+    function toggleHandler (evt) {
+        that.toggle(that.isOn(), elem);
+    }
+    return toggleHandler;
+};
 
 Toggle.prototype.isOn = function () {
     return !!(this.status);
@@ -1215,12 +1270,8 @@ Toggle.prototype.t = function () {
 
 
 function Toggler (elem) {
-    var on = 'on',
-        off = 'off';
-
     var selector = elem.getAttribute('data-target'),
         initStateAttr = elem.getAttribute('data-state') || 'off',
-        targets = document.querySelectorAll(selector),
         id = _.uniqueId('T.'),
         initState = false;
 
@@ -1234,59 +1285,33 @@ function Toggler (elem) {
     });
 
     elem.setAttribute('id', id);
-    this.registerTarget(selector, initState);
-    var tog = this.registry[selector];
-    console.log('TOGGLER', selector, initState, tog.isOn());
-
-    function onner (node) {
-        removeClass(node, off);
-        addClass(node, on);
-    }
-
-    function offer (node) {
-            removeClass(node, on);
-            addClass(node, off);
-    }
-
-    function toggle (state) {
-        var i = 0;
-        if (state) {
-            offer(elem);
-            for (; i < targets.length; i++) {
-                offer(targets.item(i));
-            }
-        }
-        else {
-            onner(elem);
-            for (; i < targets.length; i++) {
-                onner(targets.item(i));
-            }
-        }
-    }
-
-    function toggleHandler (evt) {
-        toggle(tog.isOn());
-        tog.t();
-    }
+    var tog = this.registerToggle(selector);
 
     if (!tog.isOn()) {
         if (initState) {
             console.log('\t switched on by', id);
-            toggle(false);
-            tog.t();
+            tog.toggle(false, elem);
         }
     }
 
-    elem.addEventListener('click', toggleHandler, false);
+    elem.addEventListener('click', tog.getHandler(elem), false);
 }
 
 
 Toggler.prototype.registry = {};
 
-Toggler.prototype.registerTarget = function(target) {
-    if (!(target in this.registry)) {
-        this.registry[target] = new Toggle();
+Toggler.prototype.registerToggle = function(selector) {
+    if (!(selector in this.registry)) {
+        this.registry[selector] = new Toggle(selector);
     }
+    return this.registry[selector];
+};
+
+Toggler.prototype.getToggle = function(selector) {
+    if (selector in this.registry) {
+        return this.registry[selector];
+    }
+    return null;
 };
 
 function Router (pager) {
