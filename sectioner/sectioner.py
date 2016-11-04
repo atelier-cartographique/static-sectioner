@@ -43,12 +43,13 @@ def project_new(name):
 @import_command.command()
 @click.argument('indir')
 @click.argument('outdir')
-def build(indir, outdir):
+@click.option('--media/--no-media', default=True)
+def build(indir, outdir, media):
     from .info import Builder
     from .writer import Writer
     from .asset import Compiler
     c = Compiler(indir, outdir)
-    b = Builder(indir, outdir, c)
+    b = Builder(indir, outdir, c, media)
     w = Writer(indir, outdir)
     data = b.build()
 

@@ -89,9 +89,10 @@ def load_href (path, tag_name=None):
 
 class Builder:
 
-    def __init__ (self, indir, outdir, asset_compiler):
+    def __init__ (self, indir, outdir, asset_compiler, with_media=True):
         self.home = Path(indir)
         self.out = Path(outdir)
+        self.with_media = with_media
         self.template_dir = self.home.joinpath('templates')
         self.compiler = asset_compiler
 
@@ -110,14 +111,19 @@ class Builder:
         items = []
         for name in names:
             media = media_path.joinpath(name)
-            if is_image(media):
-                logger.debug("build_media {}".format(media))
-                wi = WebImage(media, 'images', self.compiler)
-                data = dict()
-                if name in meta:
-                    data.update(meta[name])
+            data = dict()
+            if name in meta:
+                data.update(meta[name])
                 html = apply_template(template, data)
-                items.append(dict(html=html, sizes=wi.get_data()))
+
+            if is_image(media):
+                if self.with_media:
+                    logger.debug("build_media {}".format(media))
+                    wi = WebImage(media, 'images', self.compiler)
+                    items.append(dict(html=html, sizes=wi.get_data()))
+                else:
+                    logger.debug('skipping image {}'.format(media))
+                    items.append(dict(html=html, sizes=[[1000, 1000, 'XXXXXXXXX']]))
             else:
                 logger.debug('media is not an image {}'.format(media))
 
