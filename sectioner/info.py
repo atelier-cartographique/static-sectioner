@@ -153,6 +153,7 @@ class Builder:
         if 'href' in attr_keys:
             page_href = self.home.joinpath(page.attributes['href'].value)
             page = load_href(page_href, 'page')
+            attr_keys = page.attributes.keys()
 
         for child in page.childNodes:
             if child.ELEMENT_NODE == child.nodeType:
@@ -165,7 +166,6 @@ class Builder:
                         data['slug'] =  slugify(get_text(child))
                     data[key] = val
 
-
         if 'template' in attr_keys:
             template_name = page.attributes['template'].value
             page_template = load_template(self.home.as_posix(), template_name)
@@ -177,6 +177,7 @@ class Builder:
         #     data['media'] = self.build_media(mediadir)
 
         if 'slug' in attr_keys:
+            logger.debug('slug {} {}'.format(data['slug'], page.attributes['slug'].value))
             data['slug'] = page.attributes['slug'].value
 
         return data
