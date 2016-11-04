@@ -117,7 +117,7 @@ example:
 </page>
 ```
 
-### gallery
+#### gallery
 
 The special `gallery` element is what the sectioner reads to generate a gallery attached to a page. It looks like:
 
