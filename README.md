@@ -87,3 +87,57 @@ The example project should be visible at [http://localhost:8000](http://localhos
 
 
 ## Pieces of documentation
+
+### data.xml
+
+Must have a `section` element at its root.
+
+#### page
+
+Each screen of the website is represented by a `page` element, which have 2 optional attributes:
+  - `slug` (takes precedence over the `title` child element)
+  - `template`(use this template rather than the default template)
+
+If a page has an `href` attribute, it's value must be a path to an XML document with a `page` element at its root.
+
+If not told otherwise, the sectioner program will process each page with templates/page.html.
+
+Each child, except the `gallery` element, will be made available to the template associated to this page, in the form `page.tag_name`.
+
+example:
+
+```xml
+<page slug="index" template="templates/index">
+    <title>Index page</title>
+    <content>
+    This is your index page...
+    you can navigate to <a href="/ex-am-ple.html">Ex Am Ple</a> by pressing KEY_DOWN or wheeling.
+    </content>
+
+</page>
+```
+
+### gallery
+
+The special `gallery` element is what the sectioner reads to generate a gallery attached to a page. It looks like:
+
+```xml
+<page>
+    <gallery root="images">
+        <media name="image_0.jpg">
+            <caption>
+                a caption.
+            </caption>
+        </media>
+        <media name="image_1.jpg">
+            <caption>
+                another caption
+            </caption>
+        </media>
+    </gallery>
+</page>
+```
+
+Each `media` element will be processed with the templates/media.html template to produce an HTML fragment which will be attached to what can be selected by `[data-role="media.meta"]` in the page.html template.
+
+Each image is transformed in a collection of target images at different scales to adapt to different device sizes. The process is done only once if images in the build directory are already present.

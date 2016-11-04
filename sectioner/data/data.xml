@@ -4,7 +4,7 @@
         <title>Your Portfolio</title>
         <content>
         This is your index page...
-        you can navigate to Ex Am Ple by pressing KEY_DOWN or wheeling.
+        you can navigate to <a href="/ex-am-ple.html">Ex Am Ple</a> by pressing KEY_DOWN or wheeling.
         </content>
     </page>
 
