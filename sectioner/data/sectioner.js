@@ -105,7 +105,7 @@ var ZINDEX = {
 Object.freeze(ZINDEX);
 
 var SPEED = {
-    FAST: 100,
+    FAST: 200,
     MEDIUM: 500,
     SLOW: 1000
 };
@@ -125,9 +125,10 @@ function mkEmiter (obj, node) {
 
     node = node || document;
 
-    function emit (name) {
+    function emit (name, data) {
         console.log('emit', prefix, name);
         var event = new Event(prefix + name);
+        event.data = data;
         node.dispatchEvent(event);
     }
 
@@ -192,10 +193,10 @@ function toggleClass (elem, c) {
     var ecStr = elem.getAttribute('class');
     var ec = ecStr ? ecStr.split(' ') : [];
     if (_.indexOf(ec, c) < 0) {
-        exports.addClass(elem, c);
+        addClass(elem, c);
     }
     else {
-        exports.removeClass(elem, c);
+        removeClass(elem, c);
     }
 }
 
@@ -219,6 +220,34 @@ function removeClass (elem, c) {
     var ec = ecStr ? ecStr.split(' ') : [];
     elem.setAttribute('class', _.without(ec, c).join(' '));
 }
+
+
+function touchFind (ev, id) {
+    var touches = ev.changedTouches,
+        item, touch;
+    for (var i = 0; i < touches.length; i++) {
+        item = touches.item(i);
+        if (id === item.identifier) {
+            touch = item;
+            break;
+        }
+    }
+    return touch;
+}
+
+function getTouchEventPos (target, ev, id) {
+    if (ev instanceof TouchEvent) {
+        var touch = touchFind(ev, id);
+        if (touch) {
+            var trect = target.getBoundingClientRect();
+            return [
+                touch.clientX - trect.left,
+                touch.clientY - trect.top
+            ];
+        }
+    }
+    return [0, 0];
+};
 
 
 function scheduleDetach (elem) {
@@ -413,6 +442,7 @@ function Slider (node, data) {
         offset += si.width + this.gap;
     }
 
+    //
     var navPrevious = node.querySelector('[data-role="media.previous"]'),
         navNext = node.querySelector('[data-role="media.next"]');
 
@@ -483,11 +513,21 @@ Slider.prototype.at = function (index) {
 };
 
 Slider.prototype.next = function () {
-    this.at(this.index + 1);
+    var newIndex = this.index + 1;
+    if (newIndex >= this.images.length) {
+        this.emit('after:media');
+        return;
+    }
+    this.at(newIndex);
 };
 
 Slider.prototype.previous = function () {
-    this.at(this.index - 1);
+    var newIndex = this.index - 1;
+    if (newIndex < 0) {
+        this.emit('before:media');
+        return;
+    }
+    this.at(newIndex);
 };
 
 
@@ -542,7 +582,7 @@ Page.prototype.attachSlider = function (pageData) {
         return;
     }
     var node = this.node.querySelector('[data-role="media.slider"]');
-    this.slider = new Slider(node, media);
+    Object.defineProperty(this, 'slider', {value: new Slider(node, media)});
     this.loadMediaMeta();
     this.slider.on('change:media', this.loadMediaMeta, this);
 };
@@ -680,9 +720,9 @@ Page.prototype.setStyle = function (key, value) {
 /**
  * Constructor of a Pager
  * @param   {DOMElement} elem      An element to attach the Pager to
- * @param   {Array}      pages     [[Description]]
+ * @param   {Array}      collection     pages data
  * @param   {number}   index     optional, defaulut to 0, internal index initializer
- * @returns {[[Type]]}   [[Description]]
+ * @returns {Pager}   A Pages Manager
  */
 function Pager (elem, collection, index) {
     var startPos = [0, 0];
@@ -705,7 +745,10 @@ function Pager (elem, collection, index) {
     Object.defineProperty(this, 'threshold', {
         get: function () {
             var rect = elem.getBoundingClientRect(),
-                tr = [Math.floor(rect.width * 0.3), Math.floor(rect.height * 0.3)];
+                tr = [
+                    32, // Math.floor(rect.width * 0.3), // DIRECTION.HORIZONTAL
+                    32 // Math.floor(rect.height * 0.2) // DIRECTION.VERTICAL
+                ];
             return tr;
         }
     });
@@ -718,6 +761,11 @@ function Pager (elem, collection, index) {
         var page = new Page(this.node, collection, i);
         if(i === this.index) {
             page.setStyle('zIndex', ZINDEX.BACK);
+            if (page.slider) {
+                page.slider.start();
+            }
+        }
+        else if ((i === (this.index + 1)) || (i === (this.index - 1))) {
             if (page.slider) {
                 page.slider.start();
             }
@@ -761,32 +809,9 @@ Pager.prototype.getMouseEventPos = function (ev) {
 };
 
 
-Pager.prototype.touchFind = function (ev, id) {
-    var touches = ev.changedTouches,
-        item, touch;
-    for (var i = 0; i < touches.length; i++) {
-        item = touches.item(i);
-        if (id === item.identifier) {
-            touch = item;
-            break;
-        }
-    }
-    return touch;
-};
 
 Pager.prototype.getTouchEventPos = function (ev, id) {
-    if (ev instanceof TouchEvent) {
-        var touch = this.touchFind(ev, id);
-        if (touch) {
-            var target = this.node,
-                trect = target.getBoundingClientRect();
-            return [
-                touch.clientX - trect.left,
-                touch.clientY - trect.top
-            ];
-        }
-    }
-    return [0, 0];
+    return getTouchEventPos(this.node, ev, id);
 };
 
 
@@ -887,6 +912,10 @@ Pager.prototype.setHandlers = function () {
     this.each(function(page){
         page.on('previous', this.pagePrevious, this);
         page.on('next', this.pageNext, this);
+        if (page.slider) {
+            page.slider.on('after:media', this.pageNext, this);
+            page.slider.on('before:media', this.pagePrevious, this);
+        }
     }, this);
 
 };
@@ -903,6 +932,7 @@ Pager.prototype.start = function (pos) {
     this.touchStartTime = _.now();
     this.touchDirection = -1;
     this.touchDeltas = [[0,0]];
+    this.touchOffset = 0;
 
     this.each(function(page){
         page.setBookmark();
@@ -914,6 +944,7 @@ Pager.prototype.stop = function () {
     this.isStarted = false;
     this.startPos = [0,0];
     this.touchDirection = -1;
+    this.touchOffset = 0;
 };
 
 Pager.prototype.touchstart = function (event) {
@@ -933,21 +964,28 @@ Pager.prototype.touchend = function (event) {
         if (tsDiff < 200) {
             event.target.click();
         }
+        else {
+            var dir = this.touchDirection,
+                cp = this.getCurrentPage(),
+                offset = this.touchOffset;
 
-        // var sp = this.startPos,
-        //     delta = this.touchDeltas.reduce(function(a,b){
-        //     return [a[0] + b[0], a[1] + b[1]];
-        // }, [sp[0], sp[1]]);
-        //
-        // console.log('Pager.touchend reset', delta);
+            if (DIRECTION.HORIZONTAL === dir) {
+                var slider = cp.slider;
+                if (slider) {
+                    this.checkOffset(offset, dir,
+                                     slider.next, slider.previous, slider);
+                }
+            }
+            else {
+                this.checkOffset(offset, dir,
+                                 this.pageNext, this.pagePrevious);
+            }
+        }
+
+
         this.each(function(page){
             page.resetBookmark();
         });
-        // this.each(function(page){
-        //     page.translate(-delta[DIRECTION.VERTICAL], {
-        //         duration: SPEED.MEDIUM
-        //     });
-        // });
     }
     this.stop();
 };
@@ -960,7 +998,7 @@ Pager.prototype.touchcancel = function (event) {
 Pager.prototype.touchmove = function (event) {
     console.log('Pager.touchmove');
     var id = this.currentTouchId,
-        touch = this.touchFind(event, id);
+        touch = touchFind(event, id);
     if (touch) {
         var pos = this.getTouchEventPos(event, id),
             startPos = this.startPos,
@@ -985,26 +1023,34 @@ Pager.prototype.touchmove = function (event) {
 
         }
 
-        var dir = this.touchDirection,
-            cp = this.getCurrentPage(),
-            offset = pos[dir] - startPos[dir];
+        var dir = this.touchDirection;
+        this.touchOffset = pos[dir] - startPos[dir];
+        if (DIRECTION.VERTICAL === dir) {
+            this.each(function (page) {
+                page.translate(delta[DIRECTION.VERTICAL]);
+            });
+        }
 
-        if (DIRECTION.HORIZONTAL === dir) {
-            var slider = cp.slider;
-            if (slider) {
-                this.checkOffset(offset, dir,
-                                 slider.next, slider.previous, slider);
-            }
-        }
-        else {
-            var isPaging = this.checkOffset(offset, dir,
-                             this.pageNext, this.pagePrevious);
-            if (!isPaging) {
-                this.each(function(page){
-                    page.translate(delta[DIRECTION.VERTICAL]);
-                });
-            }
-        }
+        // var dir = this.touchDirection,
+        //     cp = this.getCurrentPage(),
+        //     offset = pos[dir] - startPos[dir];
+        //
+        // if (DIRECTION.HORIZONTAL === dir) {
+        //     var slider = cp.slider;
+        //     if (slider) {
+        //         this.checkOffset(offset, dir,
+        //                          slider.next, slider.previous, slider);
+        //     }
+        // }
+        // else {
+        //     var isPaging = this.checkOffset(offset, dir,
+        //                      this.pageNext, this.pagePrevious);
+        //     if (/* !isPaging */ true) {
+        //         this.each(function(page){
+        //             page.translate(delta[DIRECTION.VERTICAL]);
+        //         });
+        //     }
+        // }
     }
 };
 
@@ -1049,7 +1095,7 @@ Pager.prototype.wheel = function (event) {
 Pager.prototype.checkOffset = function (offset, dir, prev, next, ctx) {
     var threshold = this.threshold[dir],
         absOffset = Math.abs(offset);
-    // console.log('check', offset, threshold);
+    console.log('check', offset, threshold);
     if (absOffset >= threshold) {
         if (offset < 0) {
             prev.call(ctx || this);
@@ -1096,38 +1142,45 @@ Pager.prototype.at = function (index, silent) {
     var that = this,
         rect = this.node.getBoundingClientRect(),
         height = rect.height,
-        // offsets = [], //(this.index - index) * rect.height,
-        nextPage = this.pages[index];
+        oldIndex = this.index,
+        nextPage = this.pages[index],
+        nextNextPage = undefined;
 
     this.index = index;
-    //
-    // for (var i = 0; i < this.images.length; i++) {
-    //     offsets.push((i - index) * height);
-    // }
+
+    if (oldIndex < index) {
+        nextNextPage = this.pages[index + 1]
+    }
+    else {
+        nextNextPage = this.pages[index - 1];
+    }
+    if (nextNextPage && nextNextPage.slider) {
+        nextNextPage.slider.start();
+    }
 
     function animationEnd () {
         that.emit('stop:animation');
     }
 
-
     var nextOptions = {
         complete: animationEnd,
-        duration: SPEED.MEDIUM
+        duration: SPEED.FAST
     };
     that.each(function(page){
         page.setStyle('zIndex', ZINDEX.BACK);
     });
     nextPage.setStyle('zIndex', ZINDEX.FRONT);
-    nextPage.after(function(){
-        nextPage.once('start:animation', function(){
+    nextPage.after(function () {
+        nextPage.once('stop:animation', function(){
             that.each(function(page){
                 if(page.index !== nextPage.index) {
                     // page.translate(offset, {
                     //     duration: SPEED.SLOW
                     // });
-                    page.setOffset((page.index - index) * height, {
-                        duration: SPEED.SLOW
-                    });
+                    // page.setOffset((page.index - index) * height, {
+                    //     duration: SPEED.FAST
+                    // });
+                    page.setOffset((page.index - index) * height);
                 }
             });
         });
@@ -1138,7 +1191,7 @@ Pager.prototype.at = function (index, silent) {
     });
 
     if (!silent) {
-        this.emit('change:page');
+        this.emit('change:page', index);
     }
 
     setDocumentTitle(nextPage.data['page.title'] || 'untitled');
@@ -1153,7 +1206,7 @@ Pager.prototype.pageNext = function () {
 };
 
 
-function Menu (container, pager) {
+function Menu (container, pager, index) {
     this.container = container;
     this.pager = pager;
     this.listContainer = container.querySelector('[data-role="menu-items"]');
@@ -1168,6 +1221,13 @@ function Menu (container, pager) {
     this.attrs = attrs;
     this.build();
 
+    function toggleMenu () {
+        var t = Toggler.prototype.getToggle('.menu');
+        if (t && t.isOn()) {
+            t.toggle(true);
+        }
+    }
+
     pager.node.addEventListener('click', function (event) {
         var eventTarget = event.target,
             role = eventTarget.getAttribute('data-role'),
@@ -1178,16 +1238,30 @@ function Menu (container, pager) {
             && ('.menu' === target)) {
             return;
         }
-        var t = Toggler.prototype.getToggle('.menu');
-        if (t && t.isOn()) {
-            t.toggle(true);
-        }
+        toggleMenu();
     }, false);
+
+
+    pager.on('change:page', function (event) {
+        // console.log('on.page:change', event.data);
+        var idx = event.data,
+            currentElem = this.elements[idx];
+
+        _.forEach(this.elements, function (elem) {
+            removeClass(elem, 'active');
+        });
+        addClass(currentElem, 'active');
+        this.isPaging = false;
+    }, this);
+    addClass(this.elements[index], 'active');
+
+    this.touchy();
 }
 
 Menu.prototype.navigator = function (index) {
     var that = this;
     return function () {
+        that.isPaging = true;
         that.pager.at(index);
     };
 };
@@ -1200,6 +1274,7 @@ Menu.prototype.build = function () {
                 elem.setAttribute(k, v);
             };
         };
+        this.elements = [];
         for (var idx = 0; idx < pages.length; idx++) {
             var page = pages[idx],
                 title = page['page.title'];
@@ -1208,9 +1283,93 @@ Menu.prototype.build = function () {
             elem.innerHTML = title;
             this.listContainer.appendChild(elem);
             elem.addEventListener('click', this.navigator(idx), false);
+            this.elements.push(elem);
         }
     }
 };
+
+Menu.prototype.touchy = function () {
+    var that = this,
+        container = this.container,
+        touchId = null,
+        startPos = 0,
+        offset = 0;
+
+
+        function offsetize () {
+            if (offset === null) {
+                container.style.left = '';
+            }
+            else {
+                container.style.left = offset + 'px';
+            }
+        }
+
+        container.addEventListener('touchstart', function (event) {
+            console.log('touchstart');
+            var touches = event.changedTouches,
+                touch = touches[0];
+            touchId = touch.identifier;
+            startPos = touch.clientX; //getTouchEventPos(container, event, touchId);
+        }, false);
+
+        container.addEventListener('touchend', function (event) {
+            var absOffset = Math.abs(offset);
+            offset = null;
+            if (absOffset < 2) {
+                console.log('touchend was a click');
+                return offsetize();
+            }
+            if (!that.isPaging
+                && (absOffset > 32)){
+                var t = Toggler.prototype.getToggle('.menu');
+                if (t && t.isOn()) {
+                    container.style.visibility = 'hidden';
+                    var resetElem = function () {
+                        container.style.left = '';
+                        container.style.visibility = '';
+                        container.removeEventListener('animationend', resetElem, false);
+                    }
+                    container.addEventListener('animationend', resetElem, false);
+                    t.toggle(true);
+                }
+                // removeClass(container, 'on');
+                //
+                // var rect = container.getBoundingClientRect();
+                // container.style.left = '-' + rect.width + 'px';
+                // // container.style.left = '';
+                // container.style.visibility = 'hidden';
+                // function resetElem () {
+                //     container.style.left = '';
+                //     container.style.visibility = '';
+                //     container.addEventListener('animationend', resetElem, false);
+                // }
+                // ['animationend', 'webkitAnimationEnd'].forEach(function (tr) {
+                //     container.addEventListener(tr, resetElem, false);
+                // })
+                // addClass(container, 'off');
+                return;
+            }
+            offsetize();
+        }, false);
+
+        container.addEventListener('touchmove', function (event) {
+            var touches = event.changedTouches,
+                touch = touchFind(event, touchId);
+            if (touch) {
+                // var pos = getTouchEventPos(container, event, touchId);
+                // offset = pos[0] - startPos[0];
+                offset = Math.min(touch.clientX  - startPos, 0);
+                // console.log(touch.clientX, offset);
+                offsetize();
+            }
+        }, false);
+
+        container.addEventListener('touchcancel', function (event) {
+            offset = null;
+            offsetize();
+        }, false);
+}
 
 
 function Toggle (selector) {
@@ -1362,8 +1521,9 @@ document.onreadystatechange = function () {
         var router = new Router(pager);
 
         if (menu) {
-            new Menu(menu, pager);
+            new Menu(menu, pager, index);
         }
+
         var togglerElements = document.querySelectorAll('[data-role="toggle"]'),
             togglers = [];
 

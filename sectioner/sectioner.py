@@ -59,5 +59,9 @@ def build(indir, outdir):
 
     c.run()
 
-if __name__ == "__main__":
+
+def main ():
     import_command()
+
+if __name__ == "__main__":
+    main()

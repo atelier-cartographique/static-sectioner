@@ -1,20 +1,30 @@
 
-<div class="images-slider" data-role="media.slider" />
+<div class="images-slider" data-role="media.slider">
+  <div class="image-nav previous" data-role="media.previous"></div>
+  <div class="image-nav next" data-role="media.next"></div>
+</div>
 <div class="infos-wrapper">
     <div class="infos-header">
       <div class="buttons-wrapper">
-        <div class="button menu"></div>
-        <div class="button open"></div>
+        <div class="button open-menu" data-role="toggle" data-target=".menu"></div>
+        <div class="button open-infos" data-role="toggle" data-target=".infos-wrapper"></div>
       </div>
 
-      <div class="infos-teaser">
+      <div class="infos-teaser" data-role="toggle" data-target=".infos-wrapper">
         <div class="job-title" data-role="page.title" />
         <div class="job-metas" data-role="page.meta" />
       </div>
+
+      <div class="page-nav">
+        <div class="previous" data-role="page.previous">↑</div>
+        <div class="next" data-role="page.next">↓</div>
+      </div>
+
     </div>
 
-    <div class="infos-body">
+    <div class="infos-body" data-role="toggle" data-target=".infos-wrapper">
         <div class="image-caption" data-role="media.meta" />
-        <div class="page-description" data-role="page.description" />
+        <div class="page-description" data-role="page.info" />
     </div>
+
  </div>

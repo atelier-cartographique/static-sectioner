@@ -1,33 +1,87 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-        <title data-role="page.title" />
-        <style>
-            #viewport {
-                position: absolute;
-                top: 0;
-                right: 0;
-                bottom: 0;
-                left: 0;
-                overflow: hidden;
-            }
-            .page {
-                position: absolute;
-                top: 0;
-                right: 0;
-                bottom: 0;
-                left: 0;
-            }
-        </style>
-    </head>
-    <body>
-    <div id="viewport">
-        <div class="page" data-role="page.html" data-index="$page.index" />
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width; initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="./styles.css" />
+    <title data-role="page.title" />
+    <style>
+        #viewport {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            overflow: hidden;
+        }
+        .page {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+        }
+        .images-slider {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 44px;
+            left: 0;
+        }
+        .slider-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu" data-role="menu">
+        <div class="menu-content">
+            <div class="author-infos">
+                <div class="picto-spec">
+                    <a href="http://example.com">:</a>
+                </div>
+                <div class="spec-name">
+                    <a href="http://speculoos.com">Ex Am Ple</a>
+                </div>
+                <div>
+                    <a href="http://www.openstreetmap.org/#map=18/50.84666/4.35114">
+                        Brussels</a>
+                </div>
+                <div>
+                    <a href="tel:+XX 0 000 00 00">+XX 0 000 00 00</a>
+                </div>
+
+                <div class="picto-spec">
+                    <a href="https://www.facebook.com/ex.am.ple">f</a>
+                    <a href="http://ex-am-ple.tumblr.com">t</a>
+                </div>
+            </div>
+
+            <div class="section-menu">
+                <div class="section-title">Ex Am Ple Section</div>
+                <div class="section-index"
+                     data-role="menu-items"
+                     data-attributes="class=menu-items;data-role=toggle;data-target=.menu;data-state=on">
+                </div>
+            </div>
+        </div>
+        <div class="button open-menu"
+             data-role="toggle"
+             data-target=".menu" />
     </div>
-    <script src="./lodash.js"></script>
+
+    <div id="viewport">
+        <div class="page"
+              data-role="page.html"
+              data-index="$page.index" />
+    </div>
+
     <script src="./data.js"></script>
+    <script src="./lodash.js"></script>
     <script src="./velocity.js"></script>
     <script src="./sectioner.js"></script>
-    </body>
+</body>
 </html>

@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<page slug="ex-am-ple">
+    <title>Ex Am Ple</title>
+
+    <info>
+        <p>
+            In bookbinding, section (sometimes gathering) refers to a group of bifolios, or sheets of paper, stacked together and folded in half. The term is sometimes used interchangeably with signature, though the latter technically refers only to the signature mark at the bottom of the first page of a printed section.
+        </p>
+    </info>
+
+    <meta>
+        Amateur-ish photo-grafik.
+    </meta>
+
+    <gallery root="images">
+        <media name="image_0.jpg">
+            <caption>
+                This picture has been taken on my kitchen table, 2015.
+            </caption>
+        </media>
+        <media name="image_1.jpg">
+            <caption>
+                .5102 ,elbat nehctik ym no nekat neeb sah erutcip sihT
+            </caption>
+        </media>
+    </gallery>
+
+</page>

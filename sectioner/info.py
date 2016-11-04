@@ -27,6 +27,9 @@ Image.init() # we need this for is_image
 from .template import (load_template, apply_template)
 from .image import WebImage
 
+import logging
+logger = logging.getLogger('Sectioner')
+
 
 def get_content (node):
     out = []
@@ -41,13 +44,10 @@ def get_text (node):
             rc.append(n.data)
     return ''.join(rc)
 
-def get_media_meta (path):
+def get_media_meta (gallery):
     data = dict()
     names = []
-    if not path.exists():
-        return data
-    dom = minidom.parse(path.as_posix())
-    medias = dom.getElementsByTagName('media')
+    medias = gallery.getElementsByTagName('media')
 
     for media in medias:
         name_attr = media.attributes.getNamedItem("name")
@@ -74,6 +74,17 @@ def is_image (path):
                 return True
     return False
 
+def load_href (path, tag_name=None):
+    dom = minidom.parse(path.absolute().as_posix())
+    element = dom.documentElement
+    if tag_name and (element.tagName != tag_name):
+        raise Exception('Wrong Tag Name In {}, expected {}, got {}'.format(
+            path.absolute().as_posix(),
+            tag_name,
+            element.tagName
+        ))
+    return element
+
 
 
 class Builder:
@@ -81,30 +92,34 @@ class Builder:
     def __init__ (self, indir, outdir, asset_compiler):
         self.home = Path(indir)
         self.out = Path(outdir)
-        self.sectioner = self.home.joinpath('sectioner')
+        self.template_dir = self.home.joinpath('templates')
         self.compiler = asset_compiler
 
-        self.page_template = load_template(self.sectioner.as_posix(), 'page')
-        self.media_template = load_template(self.sectioner.as_posix(), 'media')
+        self.page_template = load_template(self.template_dir.as_posix(), 'page')
+        self.media_template = load_template(self.template_dir.as_posix(), 'media')
 
-    def build_media (self, mediadir):
-        # return dict()
+    def build_media (self, gallery):
+        attr_keys = gallery.attributes.keys()
+        mediadir = Path(self.home)
+        if 'root' in attr_keys:
+            mediadir = mediadir.joinpath(gallery.attributes['root'].value)
         template = self.media_template
-        media_path = self.home.joinpath(mediadir).absolute()
-        meta_path = media_path.joinpath('meta.xml')
-        names, meta = get_media_meta(meta_path)
+        media_path = mediadir.absolute()
+        names, meta = get_media_meta(gallery)
         root = 'images'
         items = []
         for name in names:
             media = media_path.joinpath(name)
             if is_image(media):
-                print("build_media {}".format(media))
+                logger.debug("build_media {}".format(media))
                 wi = WebImage(media, 'images', self.compiler)
                 data = dict()
                 if name in meta:
                     data.update(meta[name])
                 html = apply_template(template, data)
                 items.append(dict(html=html, sizes=wi.get_data()))
+            else:
+                logger.debug('media is not an image {}'.format(media))
 
         return dict(root=root, items=items)
 
@@ -127,16 +142,22 @@ class Builder:
     def parse_page (self, page):
         data = dict()
         page_template = self.page_template
+        attr_keys = page.attributes.keys()
+
+        if 'href' in attr_keys:
+            page_href = self.home.joinpath(page.attributes['href'].value)
+            page = load_href(page_href, 'page')
 
         for child in page.childNodes:
             if child.ELEMENT_NODE == child.nodeType:
-                key = 'page.' + child.tagName
-                val = get_content(child)
-                if 'title' == child.tagName:
-                    data['slug'] =  slugify(get_text(child))
-                data[key] = val
-
-        attr_keys = page.attributes.keys()
+                if 'gallery' == child.tagName:
+                    data['media'] = self.build_media(child)
+                else:
+                    key = 'page.' + child.tagName
+                    val = get_content(child)
+                    if 'title' == child.tagName:
+                        data['slug'] =  slugify(get_text(child))
+                    data[key] = val
 
 
         if 'template' in attr_keys:
@@ -145,14 +166,16 @@ class Builder:
 
         data['page.html'] = apply_template(page_template, data)
 
-        if 'media' in attr_keys:
-            mediadir = page.attributes['media'].value
-            data['media'] = self.build_media(mediadir)
+        # if 'media' in attr_keys:
+        #     mediadir = page.attributes['media'].value
+        #     data['media'] = self.build_media(mediadir)
 
         if 'slug' in attr_keys:
             data['slug'] = page.attributes['slug'].value
 
         return data
+
+
 
     def build (self):
         data = []

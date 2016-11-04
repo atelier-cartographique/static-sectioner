@@ -26,11 +26,11 @@ install_requires = [
 packages = ['sectioner']
 package_dir = {'sectioner': 'sectioner'}
 package_data = {'sectioner': ['data/*']}
-entry_points = {'console_scripts': [ 'sectioner=sectioner.sectioner:import_command']}
+entry_points = {'console_scripts': [ 'sectioner=sectioner.sectioner:main']}
 
 setup(
     name=name,
-    version='0.0.1',
+    version='0.0.2',
     url=url,
     license=license,
     description=description,

@@ -1,0 +1,34 @@
+<?xml version="1.0" ?>
+<section>
+    <page slug="index" template="templates/index">
+        <title>Your Portfolio</title>
+        <content>
+        This is your index page...
+        you can navigate to Ex Am Ple by pressing KEY_DOWN or wheeling.
+        </content>
+    </page>
+
+    <page href="pages/example.xml" />
+
+    <asset>
+        <from path="js/lodash.js"/>
+        <to path="lodash.js"/>
+    </asset>
+    <asset>
+        <from path="js/zepto.js"/>
+        <to path="zepto.js"/>
+    </asset>
+    <asset>
+        <from path="js/velocity.js"/>
+        <to path="velocity.js"/>
+    </asset>
+    <asset>
+        <from path="js/sectioner.js"/>
+        <to path="sectioner.js"/>
+    </asset>
+
+    <asset>
+        <from path="styles/styles.css"/>
+        <to path="styles.css"/>
+    </asset>
+</section>

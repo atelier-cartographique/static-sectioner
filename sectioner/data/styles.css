@@ -1,0 +1,500 @@
+/* http://meyerweb.com/eric/tools/css/reset/
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+html { box-sizing: border-box; } *, *:before, *:after { box-sizing: inherit; } html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video { margin: 0; padding: 0; border: 0; font-size: 100%; font: inherit; vertical-align: baseline; background-color: transparent; } /* HTML5 display-role reset for older browsers */ article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section { display: block; } body { line-height: 1; } ol, ul { list-style: none; } blockquote, q { quotes: none; } blockquote:before, blockquote:after, q:before, q:after { content: ''; content: none; } table { border-collapse: collapse; border-spacing: 0;
+}
+
+.example {
+    margin: 10%;
+}
+
+.example h1 {
+    font-size: 40pt;
+    margin-bottom: 1em;
+}
+.example p {
+    font-size: 20pt;
+    line-height: 150%;
+}
+
+@media (min-width: 200px) and (max-width: 767px) {
+  body {
+    font-size: 12px !important;
+    line-height: 16.5px !important;
+  }
+  .picto-spec,
+  .picto-langue {
+    font-size: 22px;
+    line-height: 27.5px;
+  }
+}
+@media (min-width: 767px) and (max-width: 1280px) {
+  body {
+    font-size: calc(12px + 2 * (( 100vw - 800px) / 480 )) !important;
+    line-height: calc(16.5px + 2.75 * ( ( 100vw - 800px) / 480 )) !important;
+  }
+  .picto-spec,
+  .picto-langue {
+    font-size: calc(22px + 2 * (( 100vw - 800px) / 480 )) !important;
+    line-height: calc( 27.5px + 2.75 * (( 100vw - 800px) / 480 )) !important;
+  }
+}
+@media (min-width: 1280px) {
+  body {
+    font-size: 14px !important;
+    line-height: 19.25px !important;
+  }
+  .picto-spec,
+  .picto-langue {
+    font-size: 24px;
+    line-height: 30.25px;
+  }
+}
+/**GENERAL LESS**/
+body {
+  font-family: serif;
+}
+a,
+a:link,
+a:hover,
+a:visited {
+  color: #000;
+  text-decoration: none;
+}
+.button {
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  position: absolute;
+  background-repeat: no-repeat;
+  background-size: auto 6px;
+  background-position: center;
+}
+.button.open-menu {
+  background-color: red;
+}
+.button.open-infos,
+.button.close-infos {
+  right: 0;
+}
+.button.open-infos {
+  background-color: green;
+}
+.button.close-infos {
+  background-color: blue;
+}
+.menu {
+  position: absolute;
+  z-index: 11;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 30vw;
+  /*define the final width of the menu*/
+  height: 100vh;
+  overflow: hidden;
+  /*used to hide the scrollbar*/
+  padding: 2vw;
+  padding-bottom: 0;
+  background-color: #fff;
+  /* The animation code */
+}
+@keyframes menuOff {
+  from {
+    left: 0;
+  }
+  to {
+    left: -30vw;
+  }
+}
+@keyframes menuOn {
+  from {
+    left: -30vw;
+  }
+  to {
+    left: 0;
+  }
+}
+.menu.on {
+  animation-name: menuOn;
+  animation-duration: 0.5s;
+  left: 0;
+}
+.menu.off {
+  animation-name: menuOff;
+  animation-duration: 0.5s;
+  left: -30vw;
+}
+.menu .button {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 30vw;
+  border-left: calc(30vw - 40px) solid transparent;
+}
+.menu-content {
+  position: absolute;
+  width: 34vw;
+  /*used to pull the scrollbar out of the parent div .hide-scroll-menu*/
+  padding-right: 8vw;
+  /*used to pull the scrollbar out of the parent div .hide-scroll-menu*/
+  height: calc(100vh - 2 * 1vw - 40px);
+  overflow-y: auto;
+}
+.menu-content .author-infos {
+  font-weight: 120;
+  font-style: italic;
+}
+.menu-content .author-infos .picto {
+  font-family: sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  display: inline;
+}
+.menu-content .author-infos .picto-spec {
+  font-family: sans-serif;
+  font-style: normal;
+  margin-left: 1px;
+  cursor: pointer;
+}
+.menu-content .author-infos .spec-name {
+  cursor: pointer;
+}
+.menu-content .author-infos .wrapper-langue {
+  font-family: sans-serif;
+  font-style: normal;
+  margin-top: -5px;
+}
+.menu-content .author-infos .wrapper-langue .langue {
+  text-transform: uppercase;
+  font-family: monospace;
+  font-weight: 400;
+  letter-spacing: 1.5px;
+  font-style: normal;
+  display: inline;
+}
+.menu-content .section-menu {
+  position: absolute;
+  overflow: auto;
+  width: 26vw;
+}
+.menu-content .section-menu .section-title {
+  text-transform: uppercase;
+  font-family: monospace;
+  font-weight: 400;
+  letter-spacing: 1.5px;
+  font-style: normal;
+  padding: 2vw 0 0 0;
+}
+.menu-content .section-menu .menu-items {
+  font-family: serif;
+  font-weight: 120;
+  font-style: italic;
+  padding: 0.25vw 0 0 0;
+  cursor: pointer;
+}
+.menu-content.home-menu {
+  background-color: transparent;
+  bottom: 20vh;
+}
+.menu-content.home-menu .section-menu {
+  height: auto;
+  top: 30vh;
+  bottom: initial;
+}
+.menu-content.home-menu .section-menu .section-title {
+  padding-top: 2vw;
+  padding-bottom: 5px;
+}
+.menu-content.home-menu .section-menu .menu-items:first-child {
+  display: none;
+}
+.menu-content.home-menu .section-menu .home-txt-wrapper {
+  padding-top: 1vw;
+}
+.menu-content.home-menu .section-menu .home-txt-wrapper div {
+  display: inline-block;
+}
+.menu-content.home-menu .section-menu .home-txt-wrapper .arrow-txt {
+  font-style: italic;
+  padding: 1vw;
+}
+.page {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: #fff;
+  overflow: hidden;
+}
+.page .images-slider {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 40px;
+  left: 0;
+}
+.page .images-slider .image-nav {
+  width: 33vw;
+  height: 100%;
+  position: absolute;
+  z-index: 1;
+  cursor: pointer;
+}
+.page .images-slider .image-nav.previous {
+  left: 0;
+}
+.page .images-slider .image-nav.next {
+  right: 0;
+}
+.page .infos-wrapper {
+  height: 40px;
+  overflow: hidden;
+  background-color: #fff;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+}
+@keyframes infosOff {
+  from {
+    height: 20vh;
+  }
+  to {
+    height: 40px;
+  }
+}
+@keyframes infosOn {
+  from {
+    height: 40px;
+  }
+  to {
+    height: 20vh;
+  }
+}
+.page .infos-wrapper.on {
+  animation-name: infosOn;
+  animation-duration: 0.5s;
+  height: 20vh;
+}
+.page .infos-wrapper.off {
+  animation-name: infosOff;
+  animation-duration: 0.5s;
+  height: 40px;
+}
+.page .infos-wrapper .infos-header {
+  height: 40px;
+  position: relative;
+}
+.page .infos-wrapper .infos-header .buttons-wrapper {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 30vw;
+  height: 40px;
+}
+.page .infos-wrapper .infos-header .infos-teaser {
+  position: absolute;
+  width: calc(100vw - 30vw);
+  margin-left: 30vw;
+  cursor: pointer;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.page .infos-wrapper .infos-header .infos-teaser > * {
+  padding: 0 0.125vw;
+  display: inline;
+  text-transform: uppercase;
+}
+.page .infos-wrapper .infos-header .infos-teaser .job-title {
+  font-family: monospace;
+  font-weight: 400;
+}
+.page .infos-wrapper .infos-header .infos-teaser .job-metas {
+  font-family: monospace;
+  font-weight: 200;
+}
+.page .infos-wrapper .infos-header .page-nav {
+  display: none;
+}
+.page .infos-wrapper .infos-header .page-nav .previous,
+.page .infos-wrapper .infos-header .page-nav .next {
+  cursor: pointer;
+  display: inline-block;
+}
+.page .infos-wrapper .infos-body {
+  padding: 0 1vw;
+  width: 100vw;
+}
+.page .infos-wrapper .infos-body a {
+  display: inline;
+}
+.page .infos-wrapper .infos-body .image-caption {
+  width: calc(30vw - 2 * 1vw);
+  position: absolute;
+  font-style: italic;
+}
+.page .infos-wrapper .infos-body .page-description {
+  position: absolute;
+  width: calc(100vw - 30vw - 3 * 1vw);
+  left: 30vw;
+  padding-bottom: 1vw;
+}
+.page[data-index="0"] .index-col {
+  display: inline-block;
+  width: 33%;
+  font-style: italic;
+  padding-top: 10px;
+}
+.page[data-index="0"] .index-col span {
+  display: block;
+  float: none;
+}
+.page[data-index="0"] .index-col span a,
+.page[data-index="0"] .index-col span a:hover,
+.page[data-index="0"] .index-col span a:link,
+.page[data-index="0"] .index-col span a:visited {
+  text-decoration: none;
+}
+@media only screen and (max-device-width: 767px) and (orientation: portrait), only screen and (max-width: 479px) {
+  .button {
+    width: 30px;
+    height: 30px;
+  }
+  .button.open-infos {
+    display: none;
+  }
+  .menu {
+    padding: 5px;
+    left: -100vw;
+    width: 100vw;
+    /* The animation code */
+  }
+  @keyframes menuOff {
+    from {
+      left: 0;
+    }
+    to {
+      left: -100vw;
+    }
+  }
+  @keyframes menuOn {
+    from {
+      left: -100vw;
+    }
+    to {
+      left: 0;
+    }
+  }
+  .menu.on {
+    animation-name: menuOn;
+    animation-duration: 0.5s;
+    left: 0;
+  }
+  .menu.off {
+    animation-name: menuOff;
+    animation-duration: 0.5s;
+    left: -100vw;
+  }
+  .menu .menu-content {
+    width: 100%;
+  }
+  .menu .section-menu {
+    max-height: 70vh;
+    width: calc(100% - 2 * 1vw);
+    padding: 5px 0;
+  }
+  .menu .section-menu .section-index {
+    -webkit-column-count: 1;
+    /* Chrome, Safari, Opera */
+    -moz-column-count: 1;
+    /* Firefox */
+    column-count: 1;
+  }
+  .menu .button {
+    right: 5px;
+    bottom: 5px;
+  }
+  .menu.home-menu {
+    background-color: #fff;
+    bottom: 30px;
+  }
+  .page .images-slider {
+    bottom: 60vh;
+  }
+  .page .images-slider .image-nav {
+    /*display: none;*/
+  }
+  .page .infos-wrapper {
+    background-color: transparent;
+    height: calc(60vh - 2 * 5px);
+    margin: 5px;
+  }
+  .page .infos-wrapper.on {
+    animation-name: none;
+    height: calc(60vh - 2 * 5px);
+  }
+  .page .infos-wrapper.off {
+    animation-name: none;
+    height: calc(60vh - 2 * 5px);
+  }
+  .page .infos-wrapper .infos-header {
+    background-color: #fff;
+    position: relative;
+    z-index: 2;
+    width: 100%;
+  }
+  .page .infos-wrapper .infos-header .buttons-wrapper {
+    width: 100%;
+    height: 30px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: initial;
+    z-index: 3;
+  }
+  .page .infos-wrapper .infos-header .infos-teaser {
+    padding: 5px;
+    padding-left: 0px;
+    width: 100%;
+    margin: 0px;
+  }
+  .page .infos-wrapper .infos-header .infos-teaser > * {
+    padding: 0px ;
+    padding-bottom: 2.5px;
+    display: inline;
+  }
+  .page .infos-wrapper .infos-header .page-nav {
+    display: none;
+  }
+  .page .infos-wrapper .infos-body {
+    padding: 0px;
+    width: 100%;
+  }
+  .page .infos-wrapper .infos-body .image-caption {
+    display: block;
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    padding: 5px 0;
+  }
+  .page .infos-wrapper .infos-body .page-description {
+    width: 100%;
+    position: absolute;
+    top: 30%;
+    bottom: 30px;
+    left: 0;
+    padding: 0px;
+    height: auto;
+  }
+  .page[data-index="0"] .index-col {
+    display: none;
+    width: 100%;
+  }
+}
