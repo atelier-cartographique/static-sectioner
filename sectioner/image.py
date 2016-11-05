@@ -15,10 +15,16 @@
 
 
 
+import os
+from stat import *
 from tempfile import TemporaryFile
 from hashlib import md5
 from pathlib import Path
 from PIL import Image
+import json
+
+import logging
+logger = logging.getLogger('Sectioner')
 
 SIZES = (
     2000,
@@ -45,36 +51,45 @@ def get_size (w, h, target):
     th = h * r
     return (tw, th)
 
+class NoCache(Exception):
+    pass
 
 class WebImage:
 
-    def __init__ (self, path, out_dirname, compiler):
+    def __init__ (self, path, out_dirname, compiler, cache_dir):
         self.path = path
         self.out_dirname = out_dirname
         self.compiler = compiler
+        self.cache_dir = cache_dir
+        stat_info = os.stat(path.as_posix())
+        self.basename = uniq_id('{}.{}'.format(stat_info[ST_MTIME], stat_info[ST_SIZE]).encode('utf8'))
+
 
     def get_extension (self):
-        return self.format.lower()
+        return self.path.suffix
 
-    def get_target_path (self, basename, sz = None):
-        ext = self.get_extension()
+
+    def get_target_path (self, sz=None, ext=None):
+        if not ext:
+            ext = self.get_extension()
         if sz:
-            return '{}/{}_{}.{}'.format(self.out_dirname, basename, sz, ext)
-        return '{}/{}.{}'.format(self.out_dirname, basename, ext)
+            return '{}/{}_{}{}'.format(self.out_dirname, self.basename, sz, ext)
+        return '{}/{}{}'.format(self.out_dirname, self.basename, ext)
 
-    def build_data (self, im, basename):
+
+    def build_data (self, im):
         data = []
-        data.append([im.width, im.height, self.get_target_path(basename)])
+        data.append([im.width, im.height, self.get_target_path()])
         for sz in SIZES:
             target_size = get_size(im.width, im.height, sz)
-            target = self.get_target_path(basename, sz)
+            target = self.get_target_path(sz=sz)
             data.append([target_size[0], target_size[1], target])
-
         return data
 
-    def build_images (self, im, basename):
+
+    def build_images (self, im):
         comp = self.compiler
-        target = self.get_target_path(basename)
+        target = self.get_target_path()
         orig = TemporaryFile()
         if im.mode == "CMYK":
             im = im.convert("RGB")
@@ -85,18 +100,48 @@ class WebImage:
             t.thumbnail((sz,sz), Image.BICUBIC)
             f = TemporaryFile()
             t.save(f, self.format, optimize=True)
-            target = self.get_target_path(basename, sz)
+            target = self.get_target_path(sz=sz)
             comp.add_file(f, target)
 
 
+    def get_cache_path (self):
+        cd = Path(self.cache_dir)
+        return cd.joinpath('{}.json'.format(self.basename))
+
+
+    def get_cached_data (self):
+        cp = self.get_cache_path()
+        if cp.exists():
+            with open(cp.as_posix()) as data_f:
+                try:
+                    data = json.load(data_f)
+                    return data
+                except Exception:
+                    raise NoCache()
+        raise NoCache()
+
+
+    def save_cached_data (self, data):
+        logger.debug('save_cached_data {} {}'.format(self.path, data))
+        cp = self.get_cache_path()
+        data_str = json.dumps(data, indent=4)
+        with open(cp.as_posix(), 'w') as data_f:
+            data_f.write(data_str)
+
+
     def get_data (self):
+        if self.cache_dir:
+            try:
+                return self.get_cached_data()
+            except NoCache:
+                pass
+
+        print('+image {}'.format(self.path.as_posix()))
+
         with Image.open(self.path.as_posix()) as im:
             self.format = im.format
-            uid = uniq_id(im.tobytes())
-            target_path = Path(self.get_target_path(uid))
-            exists = self.compiler.target_exists(target_path)
-            print('target {} {}'.format(target_path.as_posix(), exists))
-            if False == exists:
-                self.build_images(im, uid)
-
-            return self.build_data(im, uid)
+            target_path = Path(self.get_target_path())
+            self.build_images(im)
+            data = self.build_data(im)
+            self.save_cached_data(data)
+            return data

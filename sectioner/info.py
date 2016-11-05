@@ -89,9 +89,10 @@ def load_href (path, tag_name=None):
 
 class Builder:
 
-    def __init__ (self, indir, outdir, asset_compiler, with_media=True):
+    def __init__ (self, indir, outdir, asset_compiler, cache_dir=None, with_media=True):
         self.home = Path(indir)
         self.out = Path(outdir)
+        self.cache_dir = cache_dir
         self.with_media = with_media
         self.template_dir = self.home.joinpath('templates')
         self.compiler = asset_compiler
@@ -119,7 +120,7 @@ class Builder:
             if is_image(media):
                 if self.with_media:
                     logger.debug("build_media {}".format(media))
-                    wi = WebImage(media, 'images', self.compiler)
+                    wi = WebImage(media, 'images', self.compiler, self.cache_dir)
                     items.append(dict(html=html, sizes=wi.get_data()))
                 else:
                     logger.debug('skipping image {}'.format(media))
