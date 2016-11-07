@@ -90,18 +90,20 @@ class WebImage:
     def build_images (self, im):
         comp = self.compiler
         target = self.get_target_path()
-        orig = TemporaryFile()
-        if im.mode == "CMYK":
-            im = im.convert("RGB")
-        im.save(orig, self.format, optimize=True)
-        comp.add_file(orig, target)
+        if not comp.target_exists(target):
+            orig = TemporaryFile()
+            if im.mode == "CMYK":
+                im = im.convert("RGB")
+            im.save(orig, self.format, optimize=True)
+            comp.add_file(orig, target)
         for sz in SIZES:
-            t = im.copy()
-            t.thumbnail((sz,sz), Image.BICUBIC)
-            f = TemporaryFile()
-            t.save(f, self.format, optimize=True)
             target = self.get_target_path(sz=sz)
-            comp.add_file(f, target)
+            if not comp.target_exists(target):
+                t = im.copy()
+                t.thumbnail((sz,sz), Image.BICUBIC)
+                f = TemporaryFile()
+                t.save(f, self.format, optimize=True)
+                comp.add_file(f, target)
 
 
     def get_cache_path (self):
@@ -140,8 +142,8 @@ class WebImage:
 
         with Image.open(self.path.as_posix()) as im:
             self.format = im.format
-            target_path = Path(self.get_target_path())
             self.build_images(im)
             data = self.build_data(im)
-            self.save_cached_data(data)
+            if self.cache_dir:
+                self.save_cached_data(data)
             return data
