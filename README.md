@@ -24,15 +24,21 @@ It's usually a good idea to update this environment:
 pip install -U pip
 ```
 
-Then you're all good to install this package, which, at the moment is not yet publish on
-the Python Package Index.
+Then you're all good to install this package.
 Note that this package depends on Pillow, which in turn depends on Python development files and few other libraries to install properly, see http://pillow.readthedocs.org/en/latest/installation.html
 
-From this directory
+from the Python Package Index
+
+```bash
+pip install sectioner
+```
+
+or from this directory
 
 ```bash
 python setup.py install
 ```
+
 or from a distance
 
 ```bash

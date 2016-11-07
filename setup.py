@@ -13,7 +13,7 @@ classifiers = [
     'Development Status :: 3 - Alpha',
     'Intended Audience :: Developers',
     'Topic :: Software Development :: Build Tools',
-    'License :: OSI Approved :: Affero Gnu Public License 3',
+    'License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)',
     'Operating System :: POSIX',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3.4',
