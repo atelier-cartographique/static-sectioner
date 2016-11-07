@@ -21,11 +21,9 @@ import xml.dom.minidom as minidom
 import json
 import click
 from slugify import slugify
-from PIL import Image
-Image.init() # we need this for is_image
 
 from .template import (load_template, apply_template)
-from .image import WebImage
+from .image import (WebImage, ImageError)
 
 import logging
 logger = logging.getLogger('Sectioner')
@@ -65,14 +63,6 @@ def get_media_meta (gallery):
 
     return (names, data)
 
-def is_image (path):
-    if path.is_file():
-        ext = path.suffix
-        if ext in Image.EXTENSION:
-            mime_id = Image.EXTENSION[ext]
-            if mime_id in Image.MIME:
-                return True
-    return False
 
 def load_href (path, tag_name=None):
     dom = minidom.parse(path.absolute().as_posix())
@@ -89,10 +79,9 @@ def load_href (path, tag_name=None):
 
 class Builder:
 
-    def __init__ (self, indir, outdir, asset_compiler, cache_dir=None, with_media=True):
+    def __init__ (self, indir, outdir, asset_compiler,  with_media=True):
         self.home = Path(indir)
         self.out = Path(outdir)
-        self.cache_dir = cache_dir
         self.with_media = with_media
         self.template_dir = self.home.joinpath('templates')
         self.compiler = asset_compiler
@@ -117,16 +106,18 @@ class Builder:
                 data.update(meta[name])
                 html = apply_template(template, data)
 
-            if is_image(media):
-                if self.with_media:
+
+            if self.with_media:
+                try:
                     logger.debug("build_media {}".format(media))
-                    wi = WebImage(media, 'images', self.compiler, self.cache_dir)
+                    wi = WebImage(media, 'images', self.compiler)
                     items.append(dict(html=html, sizes=wi.get_data()))
-                else:
-                    logger.debug('skipping image {}'.format(media))
-                    items.append(dict(html=html, sizes=[[1000, 1000, 'XXXXXXXXX']]))
+                except ImageError:
+                    logger.error("ImageError {}".format(media))
             else:
-                logger.debug('media is not an image {}'.format(media))
+                logger.debug('skipping image {}'.format(media))
+                items.append(dict(html=html, sizes=[[1000, 1000, 'XXXXXXXXX']]))
+
 
         return dict(root=root, items=items)
 

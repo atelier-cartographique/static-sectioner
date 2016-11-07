@@ -23,6 +23,9 @@ from pathlib import Path
 from PIL import Image
 import json
 
+
+Image.init() # we need this for is_image
+
 import logging
 logger = logging.getLogger('Sectioner')
 
@@ -38,6 +41,16 @@ SIZES = (
     400
     )
 
+
+def is_image (path):
+    if path.is_file():
+        ext = path.suffix
+        if ext in Image.EXTENSION:
+            mime_id = Image.EXTENSION[ext]
+            if mime_id in Image.MIME:
+                return True
+    return False
+
 def uniq_id (data):
     hex = md5(data).hexdigest()
     return hex
@@ -51,16 +64,18 @@ def get_size (w, h, target):
     th = h * r
     return (tw, th)
 
+class ImageError(Exception):
+    pass
+
 class NoCache(Exception):
     pass
 
 class WebImage:
 
-    def __init__ (self, path, out_dirname, compiler, cache_dir):
+    def __init__ (self, path, out_dirname, compiler):
         self.path = path
         self.out_dirname = out_dirname
         self.compiler = compiler
-        self.cache_dir = cache_dir
         stat_info = os.stat(path.as_posix())
         self.basename = uniq_id('{}.{}'.format(stat_info[ST_MTIME], stat_info[ST_SIZE]).encode('utf8'))
 
@@ -106,44 +121,51 @@ class WebImage:
                 comp.add_file(f, target)
 
 
-    def get_cache_path (self):
-        cd = Path(self.cache_dir)
-        return cd.joinpath('{}.json'.format(self.basename))
-
-
-    def get_cached_data (self):
-        cp = self.get_cache_path()
-        if cp.exists():
-            with open(cp.as_posix()) as data_f:
-                try:
-                    data = json.load(data_f)
-                    return data
-                except Exception:
-                    raise NoCache()
-        raise NoCache()
-
-
-    def save_cached_data (self, data):
-        logger.debug('save_cached_data {} {}'.format(self.path, data))
-        cp = self.get_cache_path()
-        data_str = json.dumps(data, indent=4)
-        with open(cp.as_posix(), 'w') as data_f:
-            data_f.write(data_str)
+    # def get_cache_path (self):
+    #     cd = Path(self.cache_dir)
+    #     return cd.joinpath('{}.json'.format(self.basename))
+    #
+    #
+    # def get_cached_data (self):
+    #     cp = self.get_cache_path()
+    #     if cp.exists():
+    #         with open(cp.as_posix()) as data_f:
+    #             try:
+    #                 data = json.load(data_f)
+    #                 return data
+    #             except Exception as ex:
+    #                 logger.debug('NoCache json.load {} [{}] '.format(cp.as_posix(), ex))
+    #                 raise NoCache()
+    #     else:
+    #         logger.debug('NoCache {} does not exists'.format(cp.as_posix()))
+    #     raise NoCache()
+    #
+    #
+    # def save_cached_data (self, data):
+    #     logger.debug('save_cached_data {} {}'.format(self.path, data))
+    #     cp = self.get_cache_path()
+    #     data_str = json.dumps(data, indent=4)
+    #     with open(cp.as_posix(), 'w') as data_f:
+    #         data_f.write(data_str)
 
 
     def get_data (self):
-        if self.cache_dir:
-            try:
-                return self.get_cached_data()
-            except NoCache:
-                pass
+        # if self.cache_dir:
+        #     try:
+        #         return self.get_cached_data()
+        #     except NoCache:
+        #         pass
 
-        print('+image {}'.format(self.path.as_posix()))
+        im_path = self.path.as_posix()
+        logger.debug('+image {}'.format(im_path))
 
-        with Image.open(self.path.as_posix()) as im:
-            self.format = im.format
-            self.build_images(im)
-            data = self.build_data(im)
-            if self.cache_dir:
-                self.save_cached_data(data)
-            return data
+        if is_image(self.path):
+            with Image.open(im_path) as im:
+                self.format = im.format
+                self.build_images(im)
+                data = self.build_data(im)
+                # if self.cache_dir:
+                #     self.save_cached_data(data)
+                return data
+
+        raise ImageError()

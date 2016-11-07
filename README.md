@@ -146,8 +146,4 @@ The special `gallery` element is what the sectioner reads to generate a gallery 
 
 Each `media` element will be processed with the templates/media.html template to produce an HTML fragment which will be attached to what can be selected by `[data-role="media.meta"]` in the page.html template.
 
-Each image is transformed in a collection of target images at different scales to adapt to different device sizes. The process is done only once if images in the build directory are already present. Even with this trick, it can be long to process and, the first generation can take hours, making it super slow to start working on a decently sized project. Came up with a `--cache_dir` option, it offers to store all data needed to generate galleries, except actual images, into JSON formated files, and thus eligible for versioning, note that `cache_dir` option must point to an existing directory.
-
-```bash
-sectioner build --cache_dir my-cache my-project my-build
-```
+Each image is transformed in a collection of target images at different scales to adapt to different device sizes. The process is done only once if images in the build directory are already present.
