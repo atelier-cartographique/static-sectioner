@@ -43,11 +43,8 @@ def project_new(name):
     p = Project(name)
     p.build()
 
-@import_command.command()
-@click.argument('indir')
-@click.argument('outdir')
-@click.option('--media/--no-media', default=True)
-def build(indir, outdir, media):
+
+def build_func (indir, outdir, media):
     from .info import Builder
     from .writer import Writer
     from .asset import Compiler
@@ -62,6 +59,15 @@ def build(indir, outdir, media):
         index += 1
 
     c.run()
+
+
+
+@import_command.command()
+@click.argument('indir')
+@click.argument('outdir')
+@click.option('--media/--no-media', default=True)
+def build(indir, outdir, media):
+    build_func(indir, outdir, media)
 
 
 @import_command.command()
@@ -81,7 +87,7 @@ def gitlab_watch(gitdir, indir, outdir, port, token):
     logger.info('Listening on {}'.format(port))
 
     click.secho('CTRL-C to stop', fg='blue')
-    builder = partial(build, clean_path(indir), clean_path(outdir))
+    builder = partial(build_func, clean_path(indir), clean_path(outdir))
     gitlab_watcher(clean_path(gitdir), builder, port, token)
 
 
