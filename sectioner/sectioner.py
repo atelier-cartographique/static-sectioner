@@ -87,7 +87,10 @@ def gitlab_watch(gitdir, indir, outdir, port, token):
     logger.info('Listening on {}'.format(port))
 
     click.secho('CTRL-C to stop', fg='blue')
-    builder = partial(build_func, clean_path(indir), clean_path(outdir))
+    builder = partial(build_func,
+                      clean_path(indir),
+                      clean_path(outdir),
+                      True)
     gitlab_watcher(clean_path(gitdir), builder, port, token)
 
 
