@@ -43,8 +43,12 @@ class BaseGitlabHandler(http.server.BaseHTTPRequestHandler):
 
         self.gitlab_ack()
         self.updater()
-        self.builder()
-        logger.info('Project Built')
+        try:
+            self.builder()
+            logger.info('Project Built')
+        except Exception as ex:
+            logger.error('Project Not Built {}'.format(ex))
+
 
 
 def updater (gitdir):
