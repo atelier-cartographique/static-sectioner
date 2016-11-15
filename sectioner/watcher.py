@@ -41,7 +41,7 @@ class BaseGitlabHandler(http.server.BaseHTTPRequestHandler):
             if req_tok != self.token:
                 return self.gitlab_not_ok()
 
-        self.gitlab_ack()
+        self.gitlab_ok()
         self.updater()
         try:
             self.builder()
