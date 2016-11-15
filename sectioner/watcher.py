@@ -60,7 +60,9 @@ def updater (gitdir):
 def gitlab_watcher (gitdir, builder, port, token):
     GITLAB_TOKEN = token
     Handler = type('GitlabHandler', (BaseGitlabHandler,),
-                   dict(builder=builder, updater=partial(updater, gitdir)))
+                   dict(builder=builder,
+                        updater=partial(updater, gitdir),
+                        token=token))
     httpd = http.server.HTTPServer(('', port), Handler)
 
     try:
