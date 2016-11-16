@@ -42,20 +42,23 @@ class BaseGitlabHandler(http.server.BaseHTTPRequestHandler):
                 return self.gitlab_not_ok()
 
         self.gitlab_ok()
-        self.updater()
-        try:
-            self.builder()
-            logger.info('Project Built')
-        except Exception as ex:
-            logger.error('Project Not Built {}'.format(ex))
+        if self.updater():
+            try:
+                self.builder()
+                logger.info('Project Built')
+            except Exception as ex:
+                logger.error('Project Not Built {}'.format(ex))
 
 
 
 def updater (gitdir):
     try:
-        subprocess.run(['git', 'pull', '-C', gitdir])
+        output = subprocess.check_output(['git', 'pull', '-C', gitdir])
+        logger.debug('updater {}'.format(output))
     except Exception as ex:
         logger.error('updater {}'.format(ex))
+        return False
+    return True
 
 def gitlab_watcher (gitdir, builder, port, token):
     GITLAB_TOKEN = token
