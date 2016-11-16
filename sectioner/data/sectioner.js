@@ -422,8 +422,10 @@ function Slider (node, data) {
     this.images = [];
     this.index = 0;
     this.gap = 10;
+
     var currentMeta = '';
     Object.defineProperty(this, 'node', {value: node});
+    Object.defineProperty(this, 'items', {value: data.items});
     Object.defineProperty(this, 'meta', {
         get: function(){
             return currentMeta;
@@ -433,16 +435,7 @@ function Slider (node, data) {
         }
     });
 
-    var offset = 0;
-    for (var idx = 0; idx < data.items.length; idx++) {
-        var si = new SImage(node, data.items[idx]);
-        this.images.push(si);
-        si.setOffset(offset);
 
-        offset += si.width + this.gap;
-    }
-
-    //
     var navPrevious = node.querySelector('[data-role="media.previous"]'),
         navNext = node.querySelector('[data-role="media.next"]');
 
@@ -454,8 +447,33 @@ function Slider (node, data) {
     }
 
     mkEmiter(this, node);
+    this.resetImages();
 }
 
+Slider.prototype.resetImages = function () {
+    this.images.forEach(function(im){
+        removeElement(im.node);
+    });
+    this.images = [];
+
+    var offset = 0;
+    for (var idx = 0; idx < this.items.length; idx++) {
+        var si = new SImage(this.node, this.items[idx]);
+        this.images.push(si);
+        si.setOffset(offset);
+        offset += si.width + this.gap;
+    }
+
+    if (this.isStarted) {
+        this.isStarted = false;
+        this.start();
+    }
+};
+
+Slider.prototype.resize = function () {
+    // console.log('slider.resize');
+    this.resetImages();
+};
 
 Slider.prototype.start = function () {
     if (this.isStarted) {
@@ -794,6 +812,16 @@ Pager.prototype.resetPositions = function () {
 
         page.setOffset(iOffset * height);
     }
+};
+
+
+Pager.prototype.resize = function () {
+    this.resetPositions();
+    this.each(function (page) {
+        if (page.slider) {
+            page.slider.resize();
+        }
+    });
 };
 
 Pager.prototype.getMouseEventPos = function (ev) {
@@ -1513,9 +1541,6 @@ document.onreadystatechange = function () {
             return;
         }
 
-        window.addEventListener("resize", _.debounce(function(){
-            console.log('resize', _.uniqueId('R.'));
-        }, 500), false);
 
         var pager = new Pager(viewport, Sectioner.pages, index);
         var router = new Router(pager);
@@ -1530,6 +1555,12 @@ document.onreadystatechange = function () {
         for (var t = 0; t < togglerElements.length; t++) {
             togglers.push(new Toggler(togglerElements.item(t)));
         }
+
+
+        window.addEventListener("resize", _.debounce(function(){
+            // console.log('resize', _.uniqueId('R.'));
+            pager.resize();
+        }, 500), false);
     }
 };
 
