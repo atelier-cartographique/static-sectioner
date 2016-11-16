@@ -21,7 +21,8 @@ classifiers = [
 install_requires = [
     "click",
     "python-slugify",
-    "Pillow"
+    "Pillow",
+    "gitpython"
 ]
 packages = ['sectioner']
 package_dir = {'sectioner': 'sectioner'}

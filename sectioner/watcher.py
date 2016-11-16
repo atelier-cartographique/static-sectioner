@@ -20,7 +20,7 @@
 
 import http.server
 from functools import partial
-import subprocess
+from git import Repo
 
 import logging
 logger = logging.getLogger('Sectioner')
@@ -51,10 +51,12 @@ class BaseGitlabHandler(http.server.BaseHTTPRequestHandler):
 
 
 
-def updater (gitdir):
+def updater (repo):
     try:
-        output = subprocess.check_output(['git', 'pull', '-C', gitdir])
-        logger.debug('updater {}'.format(output))
+        # output = subprocess.check_output(['git', 'pull', '-C', gitdir])
+        # logger.debug('updater {}'.format(output))
+        origin = repo.remotes.origin
+        origin.pull()
     except Exception as ex:
         logger.error('updater {}'.format(ex))
         return False
@@ -62,9 +64,10 @@ def updater (gitdir):
 
 def gitlab_watcher (gitdir, builder, port, token):
     GITLAB_TOKEN = token
+    repo = Repo(gitdir)
     Handler = type('GitlabHandler', (BaseGitlabHandler,),
                    dict(builder=builder,
-                        updater=partial(updater, gitdir),
+                        updater=partial(updater, repo),
                         token=token))
     httpd = http.server.HTTPServer(('', port), Handler)
 
