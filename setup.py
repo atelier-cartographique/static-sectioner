@@ -22,7 +22,8 @@ install_requires = [
     "click",
     "python-slugify",
     "Pillow",
-    "gitpython"
+    "gitpython",
+    "inotify"
 ]
 packages = ['sectioner']
 package_dir = {'sectioner': 'sectioner'}
@@ -31,7 +32,7 @@ entry_points = {'console_scripts': [ 'sectioner=sectioner.sectioner:main']}
 
 setup(
     name=name,
-    version='0.1.1',
+    version='0.1.2',
     url=url,
     license=license,
     description=description,

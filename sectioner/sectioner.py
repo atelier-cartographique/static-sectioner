@@ -66,8 +66,22 @@ def build_func (indir, outdir, media):
 @click.argument('indir')
 @click.argument('outdir')
 @click.option('--media/--no-media', default=True)
-def build(indir, outdir, media):
+@click.option('--watch/--no-watch', '-w/-nw', default=False)
+def build(indir, outdir, media, watch):
     build_func(indir, outdir, media)
+
+    if watch:
+        from inotify.adapters import InotifyTree
+        click.secho('Watching {}'.format(indir), fg='blue')
+        i = InotifyTree(indir.encode('utf-8'))
+        try:
+            for event in i.event_gen():
+                if event is not None:
+                    (header, type_names, watch_path, filename) = event
+                    if 'IN_MODIFY' in type_names:
+                        build_func(indir, outdir, media)
+        except KeyboardInterrupt:
+            return
 
 
 @import_command.command()
