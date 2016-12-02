@@ -64,17 +64,24 @@ def get_media_meta (gallery):
     return (names, data)
 
 
-def load_href (path, tag_name=None):
-    dom = minidom.parse(path.absolute().as_posix())
-    element = dom.documentElement
-    if tag_name and (element.tagName != tag_name):
-        raise Exception('Wrong Tag Name In {}, expected {}, got {}'.format(
-            path.absolute().as_posix(),
-            tag_name,
-            element.tagName
-        ))
-    return element
 
+
+def load_href (path, tag_name=None):
+    if (path.exists()):
+        try:
+            dom = minidom.parse(path.absolute().as_posix())
+        except Exception as ex:
+            raise Exception('minidom failed to parse "{}" because of\n\t {}'.format(
+                                path.absolute().as_posix(), ex))
+        element = dom.documentElement
+        if tag_name and (element.tagName != tag_name):
+            raise Exception('Wrong Tag Name In {}, expected {}, got {}'.format(
+                path.absolute().as_posix(),
+                tag_name,
+                element.tagName
+            ))
+        return element
+    raise Exception('File Not Found {}'.format(path.absolute().as_posix()))
 
 
 class Builder:
@@ -112,8 +119,8 @@ class Builder:
                     logger.debug("build_media {}".format(media))
                     wi = WebImage(media, 'images', self.compiler)
                     items.append(dict(html=html, sizes=wi.get_data()))
-                except ImageError:
-                    logger.error("ImageError {}".format(media))
+                except Exception as ex:
+                    click.secho("Failed on Image: {}".format(ex), err=True, fg='red')
             else:
                 logger.debug('skipping image {}'.format(media))
                 items.append(dict(html=html, sizes=[[1000, 1000, 'XXXXXXXXX']]))
@@ -182,10 +189,13 @@ class Builder:
         dom = minidom.parse(datapath.absolute().as_posix())
         index = 0
         for page in dom.getElementsByTagName('page'):
-            page_data = self.parse_page(page)
-            page_data['page.index'] = index
-            data.append(page_data)
-            index += 1
+            try:
+                page_data = self.parse_page(page)
+                page_data['page.index'] = index
+                data.append(page_data)
+                index += 1
+            except Exception as ex:
+                click.secho('Failed on Page: {}'.format(ex), err=True, fg='red')
 
         data_loader = """
 (function initData(w){{

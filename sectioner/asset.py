@@ -38,7 +38,7 @@ class Asset:
         with self.source_path.open('rb') as source:
             with self.target_path.open('wb') as sink:
                 sink.write(source.read())
-                secho("[asset] {} {}".format(self.source_path, self.target_path), fg="green")
+                # secho("[asset] {} {}".format(self.source_path, self.target_path), fg="green")
 
 class FileAsset(Asset):
 
@@ -52,7 +52,7 @@ class FileAsset(Asset):
         source.seek(0)
         with self.target_path.open('wb') as sink:
             sink.write(source.read())
-            secho("[asset] <Blob> {}".format(self.target_path), fg="green")
+            # secho("[asset] <Blob> {}".format(self.target_path), fg="green")
 
 class Compiler:
 
