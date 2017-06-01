@@ -120,6 +120,9 @@ class BaseHTTPHandler(http.server.BaseHTTPRequestHandler):
             raise ex
             logger.error('Project Not Built {}'.format(ex))
 
+    def do_POST(self):
+        return self.do_GET()
+
 
 def http_watcher(gitdir, outbase, builder, port):
     repo = Repo(gitdir)
