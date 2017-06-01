@@ -19,23 +19,28 @@
 
 
 import http.server
+from pathlib import Path
 from functools import partial
 from git import Repo
+from urllib import parse
+from functools import reduce
+
 
 import logging
 logger = logging.getLogger('Sectioner')
 
+
 class BaseGitlabHandler(http.server.BaseHTTPRequestHandler):
 
-    def gitlab_ok (self):
+    def gitlab_ok(self):
         self.send_response(200, message="OK")
         self.end_headers()
 
-    def gitlab_not_ok (self):
+    def gitlab_not_ok(self):
         self.send_response(403, message="NOT OK")
         self.end_headers()
 
-    def do_POST (self):
+    def do_POST(self):
         if self.token != None:
             req_tok = self.headers['X-Gitlab-Token']
             if req_tok != self.token:
@@ -50,8 +55,7 @@ class BaseGitlabHandler(http.server.BaseHTTPRequestHandler):
                 logger.error('Project Not Built {}'.format(ex))
 
 
-
-def updater (repo):
+def updater(repo):
     try:
         # output = subprocess.check_output(['git', 'pull', '-C', gitdir])
         # logger.debug('updater {}'.format(output))
@@ -62,13 +66,68 @@ def updater (repo):
         return False
     return True
 
-def gitlab_watcher (gitdir, builder, port, token):
+
+def gitlab_watcher(gitdir, builder, port, token):
     GITLAB_TOKEN = token
     repo = Repo(gitdir)
     Handler = type('GitlabHandler', (BaseGitlabHandler,),
                    dict(builder=builder,
                         updater=partial(updater, repo),
                         token=token))
+    httpd = http.server.HTTPServer(('', port), Handler)
+
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        httpd.shutdown()
+
+
+# harbomaster
+
+def mkdict(acc, v):
+    acc[v[0]] = v[1]
+    return acc
+
+
+def parse_path(path_opt):
+    path, qs = path_opt.split('?')
+    if qs:
+        return dict(path=path,
+                    query=reduce(mkdict, parse.parse_qsl(qs), dict()))
+
+    return dict(path=path, query=None)
+
+
+class BaseHTTPHandler(http.server.BaseHTTPRequestHandler):
+
+    def do_GET(self):
+        try:
+            req = parse_path(self.path)
+            indir = self.gitdir.joinpath(req['query']['indir'])
+            outdir = self.outbase.joinpath(req['query']['outdir'])
+            self.send_response(200, message="OK")
+            self.end_headers()
+
+            if self.updater():
+                self.builder(
+                    indir.as_posix(),
+                    outdir.as_posix(),
+                    True
+                )
+                logger.info('Project Built')
+
+        except Exception as ex:
+            raise ex
+            logger.error('Project Not Built {}'.format(ex))
+
+
+def http_watcher(gitdir, outbase, builder, port):
+    repo = Repo(gitdir)
+    Handler = type('HTTPHandler', (BaseHTTPHandler,),
+                   dict(builder=builder,
+                        gitdir=Path(gitdir),
+                        outbase=Path(outbase),
+                        updater=partial(updater, repo)))
     httpd = http.server.HTTPServer(('', port), Handler)
 
     try:

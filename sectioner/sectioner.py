@@ -20,13 +20,16 @@
 
 import click
 from pathlib import Path
-import logging; logging.basicConfig()
+import logging
+logging.basicConfig()
 
 
 logger = logging.getLogger('Sectioner')
 
-def clean_path (p):
-    return Path(p).resolve().as_posix()
+
+def clean_path(p):
+    return Path(p).absolute().as_posix()
+
 
 @click.group()
 @click.option('--debug/--no-debug', default=False)
@@ -44,7 +47,7 @@ def project_new(name):
     p.build()
 
 
-def build_func (indir, outdir, media):
+def build_func(indir, outdir, media):
     from .info import Builder
     from .writer import Writer
     from .asset import Compiler
@@ -59,7 +62,6 @@ def build_func (indir, outdir, media):
         index += 1
 
     c.run()
-
 
 
 @import_command.command()
@@ -94,7 +96,6 @@ def gitlab_watch(gitdir, indir, outdir, port, token):
     from functools import partial
     from .watcher import gitlab_watcher
 
-
     logger.info('Local Repository {}'.format(clean_path(gitdir)))
     logger.info('Source {}'.format(clean_path(indir)))
     logger.info('Target {}'.format(clean_path(outdir)))
@@ -108,7 +109,23 @@ def gitlab_watch(gitdir, indir, outdir, port, token):
     gitlab_watcher(clean_path(gitdir), builder, port, token)
 
 
-def main ():
+@import_command.command()
+@click.argument('gitdir')
+@click.argument('outbase')
+@click.option('--port', default=7000)
+def http_watch(gitdir, outbase, port):
+    from functools import partial
+    from .watcher import http_watcher
+
+    logger.info('Local Repository {}'.format(clean_path(gitdir)))
+    logger.info('Out Base Dir {}'.format(clean_path(outbase)))
+    logger.info('Listening on {}'.format(port))
+
+    click.secho('CTRL-C to stop', fg='blue')
+    http_watcher(clean_path(gitdir), clean_path(outbase), build_func, port)
+
+
+def main():
     import_command()
 
 if __name__ == "__main__":
