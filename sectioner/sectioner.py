@@ -122,7 +122,8 @@ def http_watch(gitdir, outbase, port):
     logger.info('Listening on {}'.format(port))
 
     click.secho('CTRL-C to stop', fg='blue')
-    http_watcher(clean_path(gitdir), clean_path(outbase), build_func, port)
+    http_watcher(clean_path(gitdir), clean_path(
+        outbase), partial(build_func), port)
 
 
 def main():
