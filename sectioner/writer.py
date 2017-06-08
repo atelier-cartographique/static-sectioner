@@ -14,7 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-
 from pathlib import Path
 import xml.dom.minidom as minidom
 from uuid import uuid4
@@ -22,18 +21,31 @@ import click
 from .template import (load_template, apply_template)
 
 
-def uniq_id (sz):
+def uniq_id(sz):
     u = uuid4()
     return u.hex[:sz]
 
+
+def get_master_template(home):
+    template_dir = home.joinpath('templates')
+    datapath = home.joinpath('data.xml')
+    dom = minidom.parse(datapath.absolute().as_posix())
+    section = dom.firstChild
+    template_root_attr = section.attributes.getNamedItem('templates-dir')
+    if template_root_attr:
+        tr = template_root_attr.value
+        template_dir = home.joinpath(tr)
+
+    return load_template(template_dir.as_posix(), 'master')
+
+
 class Writer:
 
-    def __init__ (self, indir, outdir):
+    def __init__(self, indir, outdir):
         self.out = Path(outdir)
-        self.template = load_template(indir + '/templates', 'master')
+        self.template = get_master_template(Path(indir))
 
-
-    def write (self, fp, data):
+    def write(self, fp, data):
         path = self.out.joinpath(fp)
         parent = path.parent
 
@@ -43,9 +55,7 @@ class Writer:
         with path.open('w') as sink:
             sink.write(data)
 
-
-
-    def write_page (self, page, index):
+    def write_page(self, page, index):
         rendered = apply_template(self.template, page)
         name = uniq_id(8)
 

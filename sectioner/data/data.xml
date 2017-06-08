@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<section>
+<section template-root="foo">
     <page slug="index" template="templates/index">
         <title>Your Portfolio</title>
         <content>

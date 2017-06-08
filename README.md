@@ -98,11 +98,13 @@ The example project should be visible at [http://localhost:8000](http://localhos
 
 Must have a `section` element at its root.
 
+If a `templates-dir` attribute is found on the `section` element, it will take precedence over the default location for templates. 
+
 #### page
 
 Each screen of the website is represented by a `page` element, which have 2 optional attributes:
   - `slug` (takes precedence over the `title` child element)
-  - `template`(use this template rather than the default template)
+  - `template` (use this template rather than the default template (relative to templates dir path) and without its ".html" extension)
 
 If a page has an `href` attribute, it's value must be a path to an XML document with a `page` element at its root.
 

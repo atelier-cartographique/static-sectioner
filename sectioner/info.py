@@ -14,7 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-
 from pathlib import Path
 from tempfile import TemporaryFile
 import xml.dom.minidom as minidom
@@ -29,20 +28,22 @@ import logging
 logger = logging.getLogger('Sectioner')
 
 
-def get_content (node):
+def get_content(node):
     out = []
     for n in node.childNodes:
         out.append(n.toxml())
     return '\n'.join(out)
 
-def get_text (node):
+
+def get_text(node):
     rc = []
     for n in node.childNodes:
         if n.nodeType == n.TEXT_NODE:
             rc.append(n.data)
     return ''.join(rc)
 
-def get_media_meta (gallery):
+
+def get_media_meta(gallery):
     data = dict()
     names = []
     medias = gallery.getElementsByTagName('media')
@@ -64,15 +65,13 @@ def get_media_meta (gallery):
     return (names, data)
 
 
-
-
-def load_href (path, tag_name=None):
+def load_href(path, tag_name=None):
     if (path.exists()):
         try:
             dom = minidom.parse(path.absolute().as_posix())
         except Exception as ex:
             raise Exception('minidom failed to parse "{}" because of\n\t {}'.format(
-                                path.absolute().as_posix(), ex))
+                path.absolute().as_posix(), ex))
         element = dom.documentElement
         if tag_name and (element.tagName != tag_name):
             raise Exception('Wrong Tag Name In {}, expected {}, got {}'.format(
@@ -86,17 +85,13 @@ def load_href (path, tag_name=None):
 
 class Builder:
 
-    def __init__ (self, indir, outdir, asset_compiler,  with_media=True):
+    def __init__(self, indir, outdir, asset_compiler,  with_media=True):
         self.home = Path(indir)
         self.out = Path(outdir)
         self.with_media = with_media
-        self.template_dir = self.home.joinpath('templates')
         self.compiler = asset_compiler
 
-        self.page_template = load_template(self.template_dir.as_posix(), 'page')
-        self.media_template = load_template(self.template_dir.as_posix(), 'media')
-
-    def build_media (self, gallery):
+    def build_media(self, gallery):
         attr_keys = gallery.attributes.keys()
         mediadir = Path(self.home)
         if 'root' in attr_keys:
@@ -113,22 +108,22 @@ class Builder:
                 data.update(meta[name])
                 html = apply_template(template, data)
 
-
             if self.with_media:
                 try:
                     logger.debug("build_media {}".format(media))
                     wi = WebImage(media, 'images', self.compiler)
                     items.append(dict(html=html, sizes=wi.get_data()))
                 except Exception as ex:
-                    click.secho("Failed on Image: {}".format(ex), err=True, fg='red')
+                    click.secho(
+                        "Failed on Image: {}".format(ex), err=True, fg='red')
             else:
                 logger.debug('skipping image {}'.format(media))
-                items.append(dict(html=html, sizes=[[1000, 1000, 'XXXXXXXXX']]))
-
+                items.append(
+                    dict(html=html, sizes=[[1000, 1000, 'XXXXXXXXX']]))
 
         return dict(root=root, items=items)
 
-    def parse_asset (self, asset):
+    def parse_asset(self, asset):
         data = dict()
 
         for child in asset.childNodes:
@@ -137,14 +132,12 @@ class Builder:
                 path_attr = child.attributes.getNamedItem('path')
                 data[key] = path_attr.value
 
-
         if 'to' not in data:
             data['to'] = data['from']
 
         self.compiler.add(data['from'], data['to'])
 
-
-    def parse_page (self, page):
+    def parse_page(self, page):
         data = dict()
         page_template = self.page_template
         attr_keys = page.attributes.keys()
@@ -162,12 +155,13 @@ class Builder:
                     key = 'page.' + child.tagName
                     val = get_content(child)
                     if 'title' == child.tagName:
-                        data['slug'] =  slugify(get_text(child))
+                        data['slug'] = slugify(get_text(child))
                     data[key] = val
 
         if 'template' in attr_keys:
             template_name = page.attributes['template'].value
-            page_template = load_template(self.home.as_posix(), template_name)
+            page_template = load_template(
+                self.template_dir.as_posix(), template_name)
 
         data['page.html'] = apply_template(page_template, data)
 
@@ -176,18 +170,31 @@ class Builder:
         #     data['media'] = self.build_media(mediadir)
 
         if 'slug' in attr_keys:
-            logger.debug('slug {} {}'.format(data['slug'], page.attributes['slug'].value))
+            logger.debug(
+                'slug {} {}'.format(data['slug'], page.attributes['slug'].value))
             data['slug'] = page.attributes['slug'].value
 
         return data
 
+    def set_templates(self, section):
+        self.template_dir = self.home.joinpath('templates')
+        template_root_attr = section.attributes.getNamedItem('templates-dir')
+        if template_root_attr:
+            tr = template_root_attr.value
+            self.template_dir = self.home.joinpath(tr)
 
+        self.page_template = load_template(
+            self.template_dir.as_posix(), 'page')
+        self.media_template = load_template(
+            self.template_dir.as_posix(), 'media')
 
-    def build (self):
+    def build(self):
         data = []
         datapath = self.home.joinpath('data.xml')
         dom = minidom.parse(datapath.absolute().as_posix())
+        self.set_templates(dom.firstChild)
         index = 0
+
         for page in dom.getElementsByTagName('page'):
             try:
                 page_data = self.parse_page(page)
@@ -195,7 +202,8 @@ class Builder:
                 data.append(page_data)
                 index += 1
             except Exception as ex:
-                click.secho('Failed on Page: {}'.format(ex), err=True, fg='red')
+                click.secho(
+                    'Failed on Page: {}'.format(ex), err=True, fg='red')
 
         data_loader = """
 (function initData(w){{
