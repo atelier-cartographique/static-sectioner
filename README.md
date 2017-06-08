@@ -100,6 +100,8 @@ Must have a `section` element at its root.
 
 If a `templates-dir` attribute is found on the `section` element, it will take precedence over the default location for templates. 
 
+If a `template-master` attribute is found on the `section` element, it will override default template name (master). 
+
 #### assets
 
 Under `section`, `asset` elements instructs what to copy over target directory, in the form

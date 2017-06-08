@@ -28,6 +28,7 @@ def uniq_id(sz):
 
 def get_master_template(home):
     template_dir = home.joinpath('templates')
+    template_name = 'master'
     datapath = home.joinpath('data.xml')
     dom = minidom.parse(datapath.absolute().as_posix())
     section = dom.firstChild
@@ -35,8 +36,11 @@ def get_master_template(home):
     if template_root_attr:
         tr = template_root_attr.value
         template_dir = home.joinpath(tr)
+    template_master_attr = section.attributes.getNamedItem('template-master')
+    if template_master_attr:
+        template_name = template_master_attr.value
 
-    return load_template(template_dir.as_posix(), 'master')
+    return load_template(template_dir.as_posix(), template_name)
 
 
 class Writer:
