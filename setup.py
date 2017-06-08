@@ -32,7 +32,7 @@ entry_points = {'console_scripts': ['sectioner=sectioner.sectioner:main']}
 
 setup(
     name=name,
-    version='0.3.1',
+    version='0.3.2',
     url=url,
     license=license,
     description=description,

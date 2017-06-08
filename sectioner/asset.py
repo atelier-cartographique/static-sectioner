@@ -50,7 +50,7 @@ class Asset:
 
     def copy_dir(self, s, t):
         for p in s.iterdir():
-            fp = p.relative_to(self.home)
+            fp = p.relative_to(self.source_path)
             tp = t.joinpath(fp)
             if p.is_dir() and (tp.exists() == False):
                 self.copy_dir(p, t)
