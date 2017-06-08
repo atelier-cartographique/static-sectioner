@@ -100,6 +100,18 @@ Must have a `section` element at its root.
 
 If a `templates-dir` attribute is found on the `section` element, it will take precedence over the default location for templates. 
 
+#### assets
+
+Under `section`, `asset` elements instructs what to copy over target directory, in the form
+
+```xml
+<asset>
+    <from path="path/relative/to/source" />
+    <to path="path/relative/to/target" />
+</asset>
+```
+
+
 #### page
 
 Each screen of the website is represented by a `page` element, which have 2 optional attributes:
@@ -149,3 +161,6 @@ The special `gallery` element is what the sectioner reads to generate a gallery 
 Each `media` element will be processed with the templates/media.html template to produce an HTML fragment which will be attached to what can be selected by `[data-role="media.meta"]` in the page.html template.
 
 Each image is transformed in a collection of target images at different scales to adapt to different device sizes. The process is done only once if images in the build directory are already present.
+
+
+

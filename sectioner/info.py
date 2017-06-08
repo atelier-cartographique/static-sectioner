@@ -21,6 +21,7 @@ import json
 import click
 from slugify import slugify
 
+
 from .template import (load_template, apply_template)
 from .image import (WebImage, ImageError)
 
