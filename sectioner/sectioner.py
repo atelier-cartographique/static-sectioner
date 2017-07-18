@@ -86,27 +86,23 @@ def build(indir, outdir, media, watch):
             return
 
 
-@import_command.command()
+@import_command.command(context_settings=dict(
+    ignore_unknown_options=True,
+))
 @click.argument('gitdir')
-@click.argument('indir')
-@click.argument('outdir')
 @click.option('--port', default=7000)
 @click.option('--token')
-def gitlab_watch(gitdir, indir, outdir, port, token):
-    from functools import partial
+@click.argument('command', nargs=-1, type=click.UNPROCESSED)
+def gitlab_watch(gitdir, port, token, command):
     from .watcher import gitlab_watcher
 
     logger.info('Local Repository {}'.format(clean_path(gitdir)))
     logger.info('Source {}'.format(clean_path(indir)))
-    logger.info('Target {}'.format(clean_path(outdir)))
     logger.info('Listening on {}'.format(port))
+    logger.info('Command {}'.format(command))
 
     click.secho('CTRL-C to stop', fg='blue')
-    builder = partial(build_func,
-                      clean_path(indir),
-                      clean_path(outdir),
-                      True)
-    gitlab_watcher(clean_path(gitdir), builder, port, token)
+    gitlab_watcher(clean_path(gitdir), list(command), port, token)
 
 
 @import_command.command()

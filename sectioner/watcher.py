@@ -19,11 +19,12 @@
 
 
 import http.server
+import subprocess
 from pathlib import Path
 from functools import partial
 from git import Repo
 from urllib import parse
-from functools import reduce
+from functools import reduce, partial
 
 
 import logging
@@ -66,10 +67,13 @@ def updater(repo):
         return False
     return True
 
+def exec_command(args):
+    subprocess.Popen(args)
 
-def gitlab_watcher(gitdir, builder, port, token):
+def gitlab_watcher(gitdir, command, port, token):
     GITLAB_TOKEN = token
     repo = Repo(gitdir)
+    builder = partial(command)
     Handler = type('GitlabHandler', (BaseGitlabHandler,),
                    dict(builder=builder,
                         updater=partial(updater, repo),
