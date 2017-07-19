@@ -67,13 +67,10 @@ def updater(repo):
         return False
     return True
 
-def exec_command(args):
-    subprocess.Popen(args)
 
 def gitlab_watcher(gitdir, command, port, token):
-    GITLAB_TOKEN = token
     repo = Repo(gitdir)
-    builder = partial(command)
+    builder = partial(subprocess.Popen, command)
     Handler = type('GitlabHandler', (BaseGitlabHandler,),
                    dict(builder=builder,
                         updater=partial(updater, repo),
