@@ -97,7 +97,6 @@ def gitlab_watch(gitdir, port, token, command):
     from .watcher import gitlab_watcher
 
     logger.info('Local Repository {}'.format(clean_path(gitdir)))
-    logger.info('Source {}'.format(clean_path(indir)))
     logger.info('Listening on {}'.format(port))
     logger.info('Command {}'.format(command))
 
